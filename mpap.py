@@ -80,6 +80,7 @@ class mpap ():
         try:
             #catch inf in Mantissa and illegal format in Exponent
             if type(Mantissa) == float:
+                #print ("--------------------------------FLOAT")
                 if str(float(Mantissa)) == 'inf' or str(float(Mantissa)) == '-inf' or \
                     str(float(Exponent)) == 'inf' or str(float(Exponent)) == '-inf':
                     raise OverflowError
@@ -92,7 +93,9 @@ class mpap ():
             return
 
         if (type(Mantissa) == float or type(Mantissa) == str):
-            #print ("FLOAT or STR")
+            #if (type(Mantissa) == str):
+                #print ("STR")
+                #print ("FLOAT or STR")
             # String rep of mantissa, useful for reuse (strings are immutable), also UnSigned variant
             strMan = str(Mantissa)
             #print ("strMan is ", strMan)
@@ -104,6 +107,7 @@ class mpap ():
                 strManParts = strMan.split('e')
                 try:
                     self.Mantissa = int(strManParts[0].replace('.', ''))
+                    #print ("self.Mantissa is ", self.Mantissa)
                     Exponent += int(strManParts[1])
                 except (ValueError, OverflowError):
                     self.Mantissa = 0
@@ -126,7 +130,8 @@ class mpap ():
                 #print ("LT 1: strManUS is ", strManUS)
                 #-inf and +inf comparisons will be handled
                 #by Python
-                if(float(strMan) == 0):
+                #print ("strMan is ", strMan)
+                if(float(Mantissa) == 0) and self.Mantissa == 0:
                     #number is 0, .0, 0.0, 0. etc
                     self.Mantissa = 0
                     self.Exponent = 0
@@ -436,7 +441,8 @@ class mpap ():
         # This means we need to align all problems like this:
         # 1.42951e-5 (142951, -5) x 8.37e4 (837, 4) = 142951 x e(-5-5) x 837 x e(4-2)
         #print ("__mul__ ----> type(other) is ", type(other))
-        #print("other is ", other)
+        #print("len self is ", len(str(self)))
+        #print("len other is ", len(str(other)))
         #print ("type of other is ", type(other))
         if(not isinstance(other, mpap)):
             #print ("calling __mul__ recursively...")
@@ -837,39 +843,26 @@ class mpap ():
     def cos (self, cosine=True):
         #x = x mod 2PI
         x = self % (mpap(2).pi())
-        #y = self
         #print ("x is now ", x)
         x2 = x*x
-        #y2 = y*y
         t = mpap(1)
         c = mpap(1)
         n = mpap(2)
-        #ty = mpap(1)
-        #cy = mpap(1)
-        #ny = mpap(2)
-        while abs(ty) > mpap(1, -self.Precision):
+        while abs(t) > mpap(1, -self.Precision):
             if cosine == True:
                 #cosine
-                #print ("t is ", t)
-                #print ("ty is ", ty)
-                #print ("c is ", c)
-                #print ("cy is ", cy)
                 t *= x2*(-1)/(n*(n-1))
-                #ty *= y2*(-1)/(ny*(ny-1))
             else:
                 #sine
                 t *= x2*(-1)/((n+1)*n)
-                #ty *= y2*(-1)/((ny+1)*ny)
             n += 2
             c += t
-            #ny += 2
-            #cy += ty
         if cosine == False:
             #sine
             c *= x
-            #cy *= y
         return c
 
+    #def endian(self, width=8, boundary=8):
     def endian(self, boundary=8):
         if boundary == 0:
             boundary = 8;
