@@ -830,7 +830,7 @@ class mpap ():
         if self == 0:
             return mpap(0)
         else:
-            return self.cos(False)
+            return self.cos(cosine=False)
 
     def tan (self):
         c = self.cos()
@@ -844,17 +844,17 @@ class mpap ():
         #x = x mod 2PI
         x = self % (mpap(2).pi())
         #print ("x is now ", x)
-        x2 = x*x
+        x2 = -x*x
         t = mpap(1)
         c = mpap(1)
         n = mpap(2)
         while abs(t) > mpap(1, -self.Precision):
             if cosine == True:
                 #cosine
-                t *= x2*(-1)/(n*(n-1))
+                t *= x2/(n*(n-1))
             else:
                 #sine
-                t *= x2*(-1)/((n+1)*n)
+                t *= x2/((n+1)*n)
             n += 2
             c += t
         if cosine == False:
@@ -862,7 +862,38 @@ class mpap ():
             c *= x
         return c
 
-    #def endian(self, width=8, boundary=8):
+    def atan (self):
+        x = self
+        m = 1
+        if self < 0:
+            x = -x
+            m = -1
+
+        a = mpap(0)
+        f = 0
+
+        if x > 0.2:
+            a = mpap(0.2).atan()
+
+        while x > 0.2:
+            f += 1
+            x = (x - 0.2)/(x * 0.2 + 1)
+
+        v = x
+        x2 = -x * x
+        n = x
+
+        t = mpap(1)
+        i = 3
+        while abs(t) > mpap (1, -self.Precision):
+            n *= x2
+            t = n/i
+            v += t
+            i += 2
+        
+        return (v + a*f)*m
+
+
     def endian(self, boundary=8):
         if boundary == 0:
             boundary = 8;
