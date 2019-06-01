@@ -1,6 +1,7 @@
 #########################################################
 # mpap
 # Minimalistic Python port of ArbitraryPrecision
+# Targeted for MicroPython on microcontrollers
 # with a few tweaks 
 # (c) 2019 Anirban Banerjee <anirbax@gmail.com>
 #########################################################
@@ -862,27 +863,42 @@ class mpap ():
             c *= x
         return c
 
+    def acos (self):
+        return self.asin(acosine=True)
+
+    def asin (self, acosine=False):
+        if abs(self) > 1:
+            return mpap(0)
+            MPAPERRORFLAG = "Domain error."
+        x = self
+        x2 = x*x
+        t = mpap(1)
+        v = mpap(1)
+        i = 2
+        while abs(t) > mpap(1, -self.Precision):
+            t *= x2*(i-1)/i
+            #print (repr(t))
+            v += t/(i+1)
+            i += 2
+        v *= x
+        return mpap(1).pi()/2 - v if acosine==True else v
+
     def atan (self):
         x = self
         m = 1
         if self < 0:
             x = -x
             m = -1
-
         a = mpap(0)
         f = 0
-
         if x > 0.2:
             a = mpap(0.2).atan()
-
         while x > 0.2:
             f += 1
             x = (x - 0.2)/(x * 0.2 + 1)
-
         v = x
         x2 = -x * x
         n = x
-
         t = mpap(1)
         i = 3
         while abs(t) > mpap (1, -self.Precision):
