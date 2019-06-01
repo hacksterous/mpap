@@ -268,8 +268,8 @@ class mpap ():
         expo = (self.Exponent // 3) * 3
         #print ("----- multfac=", multfac)
         #print ("----- lenStrMantissa=", lenStrMantissa)
-        #print ("----- B. strMantissa=", strMantissa)
-        man = ('-' if (self.Sign == -1) else '') + strMantissa[:multfac] + '.' + str(int(strMantissa[multfac:]))
+        #print ("----- B. strMantissa[multfac:]=", strMantissa[multfac:])
+        man = ('-' if (self.Sign == -1) else '') + strMantissa[:multfac] + '.' + strMantissa[multfac:]
         # handle the case when mantissa string is like '123.' -- add a zero at end
         if man[-1:] == '.':
             man += '0'
@@ -740,7 +740,7 @@ class mpap ():
             #even power of ten, make use of our base-10 advantage
             #print ("make use of our base-10 advantage")
             return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True, Precision=self.Precision)
-        elif self.Precision < 14:
+        elif self.Precision < 15:
             #use built-in float 
             #print ("use built-in float")
             return mpap(math.sqrt(int(self)), Precision=self.Precision)
