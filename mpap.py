@@ -425,7 +425,7 @@ class mpap ():
         if(len(str(mSum)) > self.Precision):
             mSum = int(mSumStr[0:self.Precision])
         else:
-            mProduct = int(mSumStr)
+            mSum = int(mSumStr)
 
         result = mpap(Mantissa = mSum, Exponent = eSum, InternalAware = True)
 
