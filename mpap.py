@@ -59,7 +59,7 @@ class mpap ():
     def __init__(self, Mantissa, Exponent = 0, Precision = PRECISION, InternalAware = False, \
         ImagMantissa = 0, ImagExponent = 0):
 
-        #print ("Mantissa is ", Mantissa)
+        #print ("Mantissa is ", Mantissa, "Exponent is ", Exponent)
         if(isinstance(Mantissa, mpap)):
             #print (" -- is already of type mpap!")
             self.Mantissa = Mantissa.Mantissa
@@ -230,7 +230,7 @@ class mpap ():
     # Official Object Representation
     def __repr__(self):
         return "mpap(Mantissa = " + str(self.Mantissa) + ", Exponent = " + str(self.Exponent) + \
-                ", Precision = " + str(self.Precision) + ")"
+                ", Precision = " + str(self.Precision) + ", InternalAware = True)"
 
     # __str__
     # Pretty-Printed Representation of a number
@@ -256,6 +256,7 @@ class mpap ():
     # returns new mantissa as a string with adecimal point
     # and the exponent as an integer
     def sci(self):
+        #print(repr(self), "sign is ", self.Sign)
         strMantissa = str(self.Mantissa)
         strMantissa = strMantissa.replace('-', '')
         lenStrMantissa = len(strMantissa)
@@ -273,6 +274,7 @@ class mpap ():
         # handle the case when mantissa string is like '123.' -- add a zero at end
         if man[-1:] == '.':
             man += '0'
+        #print (man)
         return man, expo
 
     def floor(self):
@@ -798,7 +800,7 @@ class mpap ():
         else:
             # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
             m = (self/(mpap(2).log())).floor()
-            print ("m is ", m)
+            #print ("m is ", m)
             return (self - m * mpap(2).log()).expsmall() * mpap(2)**m
 
     def digits(self):
@@ -831,6 +833,7 @@ class mpap ():
         if self == 0:
             return mpap(0)
         else:
+            #print ("sine sign is ", self.cos(cosine=False).Sign)
             return self.cos(cosine=False)
 
     def tan (self):
@@ -909,15 +912,51 @@ class mpap ():
         
         return (v + a*f)*m
 
-
     def endian(self, boundary=8):
+        #print ("self is ", repr(self))
+        boundary = int(boundary)
         if boundary == 0:
             boundary = 8;
         copy = self
         result = mpap(0)
         while copy != 0:
             result <<= boundary
-            result |= (copy & int('0b'+'1'*boundary))
+            #result |= (copy & int('0b'+'1'*boundary))
+            result |= (copy & ((1<<boundary)-1))
             copy >>= boundary
 
+        #print ("result is ", repr(result))
         return result
+
+    
+    def factors (self):
+        n = int(self)
+
+        if n == 0:
+            self.result = 0
+    
+        self.result = set()
+        self.result |= {int(1), n}
+    
+        def all_multiples(result, n, factor):
+            z = n
+            f = int(factor)
+            while z % f == 0:
+                result |= {f, z // f}
+                f += factor
+            return result
+        
+        self.result = all_multiples(self.result, n, 2)
+        self.result = all_multiples(self.result, n, 3)
+        
+        for i in range(1, math.sqrt(n) + 1, 6):
+            i1 = i + 1
+            i2 = i + 5
+            if not n % i1:
+                self.result |= {int(i1), n // i1}
+            if not n % i2:
+                self.result |= {int(i2), n // i2}
+
+        print (self.result)
+        return mpap(1)
+
