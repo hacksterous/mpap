@@ -17,7 +17,7 @@
 #########################################################
 import math
 MPAPERRORFLAG = ''
-PRECISION = 50
+PRECISION = 33
 class mpap ():
     # Supported maximum precision digits.
     Precision = PRECISION
@@ -422,10 +422,13 @@ class mpap ():
             i += 1
 
         # cut Mantissa to target precision
-        if(len(str(mSum)) > self.Precision):
+        numFractionDigits = len(mSumStr) - eSum - 1
+        #print ("~~~~~~~~~~~~~numFractionDigits is ", numFractionDigits)
+        if (numFractionDigits > 0):
+        #if(len(str(mSum)) > self.Precision):
             mSum = int(mSumStr[0:self.Precision])
         else:
-            mProduct = int(mSumStr)
+            mSum = int(mSumStr)
 
         result = mpap(Mantissa = mSum, Exponent = eSum, InternalAware = True)
 
@@ -492,7 +495,10 @@ class mpap ():
 
         #print ("~~~~~~~~~~~~~mProduct is ", mProductStr)
         # cut Mantissa to target precision
-        if(len(mProductStr) > self.Precision):
+        numFractionDigits = len(mProductStr) - eProduct - 1
+        #print ("~~~~~~~~~~~~~numFractionDigits is ", numFractionDigits)
+        if (numFractionDigits > 0):
+        #if(len(mProductStr) > self.Precision):
             mProduct = int(mProductStr[0:self.Precision])
         else:
             mProduct = int(mProductStr)
@@ -534,8 +540,7 @@ class mpap ():
         #print ("opSelf is ", opSelf)
         opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
         #print ("opResult is ", opResult)
-        while(len(opResult.lstrip('0')) < (self.Precision*2) and opSelf != 0):
-            #NOTE: anirb -- we compute double the precision digits required
+        while(len(opResult.lstrip('0')) < self.Precision and opSelf != 0):
             opSelf = opSelf * 10
             bEPrecision += 1
             opResult = opResult + (str(opSelf // mOther))
@@ -722,8 +727,10 @@ class mpap ():
       
 
     def bitcount (self):
-        #print ("bitcount: x is", x)
-        return int(math.log(int(self), 2)+2)
+        #v = int(math.log(int(self), 2)+2)
+        #vq = int(len(str(self))*3.3) + 2 # log(10)/log(2)
+        #return int(math.log(int(self), 2)+2)
+        return int(len(str(self))*3.3) + 2 # log(10)/log(2)
 
     def x10p (self, x):
         # multiply by 10^x, where x is an integer
