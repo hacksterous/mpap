@@ -15,7 +15,6 @@
 # HW-2, Peking University, School of Physics, Fall 2017
 #
 #########################################################
-import math
 MPAPERRORFLAG = ''
 PRECISION = 33
 class mpap ():
@@ -59,9 +58,7 @@ class mpap ():
     def __init__(self, Mantissa, Exponent = 0, Precision = PRECISION, InternalAware = False, \
         ImagMantissa = 0, ImagExponent = 0):
 
-        #print ("Mantissa is ", Mantissa, "Exponent is ", Exponent)
         if(isinstance(Mantissa, mpap)):
-            #print (" -- is already of type mpap!")
             self.Mantissa = Mantissa.Mantissa
             self.Exponent = Mantissa.Exponent
             return
@@ -77,29 +74,22 @@ class mpap ():
         else:
             self.Precision = Precision
 
-        #print (" float of mantissa is --", float(Mantissa))
         try:
             #catch inf in Mantissa and illegal format in Exponent
             if type(Mantissa) == float:
-                #print ("--------------------------------FLOAT")
                 if str(float(Mantissa)) == 'inf' or str(float(Mantissa)) == '-inf' or \
                     str(float(Exponent)) == 'inf' or str(float(Exponent)) == '-inf':
                     raise OverflowError
             Exponent = int(Exponent)
         except (ValueError, OverflowError):
-            #print ("Raised error --")
             self.Mantissa = 0
             self.Exponent = 0
             MPAPERRORFLAG = "Illegal mantissa or exponent. \nHint: use strings to hold large numbers!"
             return
 
         if (type(Mantissa) == float or type(Mantissa) == str):
-            #if (type(Mantissa) == str):
-                #print ("STR")
-                #print ("FLOAT or STR")
             # String rep of mantissa, useful for reuse (strings are immutable), also UnSigned variant
             strMan = str(Mantissa)
-            #print ("strMan is ", strMan)
             strManUS = strMan.replace('-', '')
             # Extract all significant digits
             if('e' in strMan): # Oops, too small; have to expand notation
@@ -115,23 +105,14 @@ class mpap ():
                     self.Exponent = 0
                     MPAPERRORFLAG = "Illegal mantissa or exponent."
                     return
-                #print ("Exponent is ", Exponent)
             else:
                 self.Mantissa = int(strMan.replace('.', ''))
 
-            #print ("abs(float(Mantissa)) is ", abs(float(Mantissa)))
-            #print ("abs is ", (abs(float(Mantissa)) < 1))
             # Count exponent for scientific notation
-            
-            #print ("find . is ", strManUS.find('.'))
-            #print ("int part is ", int(strManUS[:strManUS.find('.')]))
             isFraction = (strManUS.find('.') > -1 and int(strManUS[:strManUS.find('.')]) == 0)
-            #print ("isFraction is ", isFraction)
             if (abs(float(Mantissa)) < 1) or isFraction == True:
-                #print ("LT 1: strManUS is ", strManUS)
                 #-inf and +inf comparisons will be handled
                 #by Python
-                #print ("strMan is ", strMan)
                 if(float(Mantissa) == 0) and self.Mantissa == 0:
                     #number is 0, .0, 0.0, 0. etc
                     self.Mantissa = 0
@@ -146,7 +127,6 @@ class mpap ():
                             break
                         Exponent = Exponent - 1
             else:
-                #print ("GTE 1: strManUS is ", strManUS)
                 Exponent = Exponent - 1 # 1.42857 is 1.425847e0
                 for i in range(len(strManUS)):
                     if(strManUS[i] == 'e' or  strManUS[i] == '.'):
@@ -154,10 +134,8 @@ class mpap ():
                     Exponent = Exponent + 1
 
             self.Exponent = Exponent
-            #print ("2. Exponent is ", Exponent)
 
         else:
-            #print ("INIT -- seeing Mantissa = ", Mantissa)
             #handle integer parameters only
             if(Mantissa == 0):
                 self.Mantissa = 0
@@ -175,20 +153,16 @@ class mpap ():
         #M=10, E=1 and M=1, E=1 both indicate the same number,
         #however, the different values of mantissa will be a problem
         #in numeric comparisons, so reduce to the form M=1, E=1
-        #print ("self.Mantissa is ", self.Mantissa)
-        #print ("type of self.Mantissa is ", type(self.Mantissa))
         MantissaStr = str(self.Mantissa)
         i = 0
         while MantissaStr[-1:] == '0' and \
                 self.Mantissa != 0:
             MantissaStr = MantissaStr[:-1]
             i += 1
-        #print ("i is ", i, "MantissaStr is ", MantissaStr)
         self.Mantissa = int (MantissaStr)
 
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
-        #print ("=============================Sign is ", self.Sign)
     #enddef init
 
     ########  Query Functions ########
@@ -263,18 +237,13 @@ class mpap ():
         diff = self.Exponent - lenStrMantissa + 1
         #if  diff > 0:
         strMantissa = strMantissa + '0'*diff
-        #print ("----- A. strMantissa=", strMantissa)
         expo = self.Exponent
         multfac = self.Exponent % 3 + 1
         expo = (self.Exponent // 3) * 3
-        #print ("----- multfac=", multfac)
-        #print ("----- lenStrMantissa=", lenStrMantissa)
-        #print ("----- B. strMantissa[multfac:]=", strMantissa[multfac:])
         man = ('-' if (self.Sign == -1) else '') + strMantissa[:multfac] + '.' + strMantissa[multfac:]
         # handle the case when mantissa string is like '123.' -- add a zero at end
         if man[-1:] == '.':
             man += '0'
-        #print (man)
         return man, expo
 
     def floor(self):
@@ -291,7 +260,6 @@ class mpap ():
             return self // mpap(other)
         #for negative numbers, round downwards, not towards 0
         res = (self / other).floor()
-        #print ("__floordiv__: res is ", res)
         return res
 
     # __mod__ (self % other)
@@ -312,8 +280,6 @@ class mpap ():
     def __eq__(self, other):
         if(not isinstance(other, mpap)):
             return self == mpap(other)
-        #print ("self is -------------", self.__repr__())
-        #print ("other is -------------", other.__repr__())
         return self.Mantissa == other.Mantissa and self.Exponent == other.Exponent
 
     # __hash__
@@ -337,8 +303,6 @@ class mpap ():
         if(self.Sign == -1 and other.Sign == -1):
             return -other < -self
 
-        #print ("self.Sign=", self.Sign)
-        #print ("other.Sign=", other.Sign)
         # Now they are all positive & same
         if self.Exponent < other.Exponent and other.Sign != 0:
             return True
@@ -379,8 +343,6 @@ class mpap ():
         if(not isinstance(other, mpap)):
             return self + mpap(other)
 
-        #print('self = ', self.__repr__(), 'other = ', other.__repr__())
-
         # Calculate Minimum Exponents for Alignment
         minESelf  = 1 + self.Exponent - len(str(self.Mantissa).replace('-', ''))
         minEOther = 1 + other.Exponent - len(str(other.Mantissa).replace('-', ''))
@@ -391,9 +353,6 @@ class mpap ():
 
         # Borrowed Exponents for Calculation
         bECalc = max(-minESelf, -minEOther)
-        #print ('minESelf = ', minESelf)
-        #print ('minEOther = ', minEOther)
-        #print ('bECalc = ', bECalc)
 
         # Check which we borrowed, and return to the other
         if(minESelf < minEOther):
@@ -422,17 +381,13 @@ class mpap ():
             i += 1
 
         # cut Mantissa to target precision
-        numFractionDigits = len(mSumStr) - eSum - 1
-        #print ("~~~~~~~~~~~~~numFractionDigits is ", numFractionDigits)
-        if (numFractionDigits > 0):
+        if ((len(mSumStr) - eSum - 1) > 0):
         #if(len(str(mSum)) > self.Precision):
             mSum = int(mSumStr[0:self.Precision])
         else:
             mSum = int(mSumStr)
 
         result = mpap(Mantissa = mSum, Exponent = eSum, InternalAware = True)
-
-        #print("result =", result.__repr__())
 
         return result
 
@@ -446,29 +401,18 @@ class mpap ():
         # and the mantissa are aligned and multiplied together.
         # This means we need to align all problems like this:
         # 1.42951e-5 (142951, -5) x 8.37e4 (837, 4) = 142951 x e(-5-5) x 837 x e(4-2)
-        #print ("__mul__ ----> type(other) is ", type(other))
-        #print("len self is ", len(str(self)))
-        #print("len other is ", len(str(other)))
-        #print ("type of other is ", type(other))
         if(not isinstance(other, mpap)):
-            #print ("calling __mul__ recursively...")
-            #r = self * mpap(other)
-            #print (" ----- finished calling __mul__ recursively...")
-            #print ("-- r is " , r)
             return self * mpap(other)
 
         self.Sign = self.Sign * other.Sign
 
-        #print ("__mul__ ----> other.Mantissa is ", other.Mantissa)
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
         bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
         bEOther = len(str(other.Mantissa).replace('-', '')) - 1
 
         # Copies of mantissas
         mSelf    = self.Mantissa
-        #print ("mSelf is ", mSelf)
         mOther   = other.Mantissa
-        #print ("mOther is ", mOther)
 
         iProduct = mSelf * mOther # this is an INTEGER part, not an actual Mantissa number!
         # Convert this iProduct to a internal representation
@@ -482,27 +426,18 @@ class mpap ():
         #M=100, E=1 and M=10, E=1 both indicate the same number,
         #however, the different values of mantissa will be a problem
         #in numeric comparisons, so reduce to the form M=10, E=1
-        #print ("1 -- mProduct is ", mProduct, "type of mProduct is ", type(mProduct))
-        #print ("1 -- eProduct is ", eProduct, "type of eProduct is ", type(eProduct))
         mProductStr = str(mProduct)
-        #print ("1a -- mProductStr is ", mProductStr)
         i = 0
         while mProductStr[-1:] == '0' and \
                 i <= eProduct and mProduct != 0:
-            #print ("A -- mProductStr is ", mProductStr)
             mProductStr = mProductStr[:-1]
             i += 1
 
-        #print ("~~~~~~~~~~~~~mProduct is ", mProductStr)
         # cut Mantissa to target precision
-        numFractionDigits = len(mProductStr) - eProduct - 1
-        #print ("~~~~~~~~~~~~~numFractionDigits is ", numFractionDigits)
-        if (numFractionDigits > 0):
-        #if(len(mProductStr) > self.Precision):
+        if ((len(mProductStr) - eProduct - 1) > 0):
             mProduct = int(mProductStr[0:self.Precision])
         else:
             mProduct = int(mProductStr)
-        #print ("Mantissa is ", mProduct, "Exponent is ", eProduct)
         return mpap(Mantissa = mProduct, Exponent = eProduct, InternalAware = True)
 
     # __truediv__ (self / other)
@@ -513,41 +448,30 @@ class mpap ():
         if other == 0:
             MPAPERRORFLAG = "Division by zero."
             return mpap(0)
-        #print ("self.Sign is ", self.Sign, "other.Sign is ", other.Sign)
-        #print ()
-        #print ("--------------------------------------------------------")
-        #print ("self is ", self.__repr__(), "other is ", other.__repr__())
 
         self.Sign = self.Sign * other.Sign
-
-        #print ("self.Sign is ", self.Sign, "other.Sign is ", other.Sign)
-        #print ("self.Sign is ", self.Sign)
 
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
         bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
         bEOther = len(str(other.Mantissa).replace('-', '')) - 1
-        #print ("bESelf is ", bESelf, "bEOther is ", bEOther)
         bEPrecision = 0 # Borrowed Exponent for Precision Division
 
         # Copies of mantissas
         mSelf    = abs(self.Mantissa)
         mOther   = abs(other.Mantissa)
-        #print ("mSelf is ", mSelf, "mOther is ", mOther)
 
         # Until we reach desired precision... or when we have exhausted the divisor
         # The signs are all absolute
         opSelf   = mSelf % mOther
-        #print ("opSelf is ", opSelf)
         opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
-        #print ("opResult is ", opResult)
-        while(len(opResult.lstrip('0')) < self.Precision and opSelf != 0):
+        # Don't see any speed difference compared to when long division
+        # is done using integers
+        while (len(opResult) < self.Precision and opSelf != 0):
             opSelf = opSelf * 10
             bEPrecision += 1
-            opResult = opResult + (str(opSelf // mOther))
-            #print ("loop: opResult is ", opResult)
+            opResult = opResult + str(opSelf // mOther)
             opSelf = opSelf % mOther
-
-        opResult = opResult.lstrip('0')
+            opResult = opResult.lstrip('0')
 
         if(len(opResult) == 0):
             return mpap(0)
@@ -555,9 +479,6 @@ class mpap ():
         bDiv = int(opResult) * self.Sign
         rteDiv = len(opResult) - 1
 
-        #print(self, other)
-        #print(mSelf, mOther, opSelf, opResult)
-        #print(self.Exponent, other.Exponent, rteDiv, bESelf, bEOther, bEPrecision)
         eDiv = self.Exponent - other.Exponent + rteDiv - bESelf + bEOther - bEPrecision
         return mpap(Mantissa = bDiv, Exponent = eDiv, InternalAware = True)
 
@@ -597,7 +518,6 @@ class mpap ():
 
     # __pow__ (self ** other)
     def __pow__(self, other):
-        #print ("other is ", other)
         if(not isinstance(other, mpap)):
             return self ** mpap(other)
         if (self.Sign == -1 and other.Exponent < 0):
@@ -605,22 +525,16 @@ class mpap ():
             return mpap (0)
 
         if(not other.isInt()):
-            #print ("B. other is ", other)
             return self.generic_pow (other)
         else:
             rResult = self
             if(other == 0):
-                if(self == 0):
-                    raise ValueError("mpap: 0**0 has no mathematical significance")
                 return mpap(1)
 
             if(other < 0):
                 return mpap(1) / (self ** (-other))
             else:
-                #print ("other is ", other)
-                #for i in range(1, other.Mantissa):
                 for i in range(1, int(other)):
-                    #print ("--- __pow__ -- i is ", i)
                     rResult = rResult * self
                 return rResult
 
@@ -632,8 +546,6 @@ class mpap ():
         return (other*self.log()).exp()
 
     def log (self):
-        if self.Precision < 15:
-            return mpap(math.log(self.float()))
         if self.Exponent > 100:
             ### DO NOT USE for mpaps with exponent smaller than 100! ###
             t = self.Exponent - 1
@@ -662,7 +574,6 @@ class mpap ():
 
     def pi(self):
         # Pi using Chudnovsky's algorithm
-        #NOTE: anirb: bug in floordiv has been fixed 30May2019
         K, M, L, X, S = mpap(6), mpap(1), mpap(13591409), mpap(1), mpap(13591409)
         maxK = self.Precision
         for i in range(1, maxK+1):
@@ -675,11 +586,8 @@ class mpap ():
         return pi * self
 
     def logsmall (self):
-        #print ("self is -------------", self.__repr__())
         # return something for the special case.
-        #print ("2. self is now ", self)
         if (self <= 0):
-            #print ("self is ---LT 0------", self.__repr__())
             MPAPERRORFLAG = "I give up!"
             return mpap (0)
  
@@ -687,7 +595,6 @@ class mpap ():
         f = 1 #mul adjustment (power of 0.5)
         s = 0 #subtraction adjustment (multiplier of 1.6)
         if self == 1.0:
-            #print ("self is EQ 1.0 -------------", self.__repr__())
             return mpap (0)
 
         if self < 1.1:
@@ -695,7 +602,6 @@ class mpap ():
             while self < 1.4:
                 s += 1
                 self = self * 1.6
-                #print ("3. self is now ", self)
                 i += 1
                 if i > 100000:
                     break
@@ -713,7 +619,6 @@ class mpap ():
             while self < 1.1:
                 s += 1
                 self = self * 1.6
-                #print ("self is now ", self)
                 i += 1
                 if i > 100000:
                     break
@@ -722,9 +627,7 @@ class mpap ():
             print ("Value too low for logt!")
             MPAPERRORFLAG = "WARNING: Value too low for logt!"
 
-        #print (self.__repr__())
         return self.logt() * f  - mpap(1.6).logt() * s
-      
 
     def bitcount (self):
         #v = int(math.log(int(self), 2)+2)
@@ -738,24 +641,16 @@ class mpap ():
 
     def sqrt (self):
         #Use isqrt(x*10^Precision)/isqrt(10^Precision)
-        #n = self.x10p(self.Precision*2).fisqrt()
-        #d = mpap(1).x10p(self.Precision*2).fisqrt()
-        #print ("n is ", n)
-        #print ("d is ", d)
+        #n = self.x10p(self.Precision*2).isqrt()
+        #d = mpap(1).x10p(self.Precision*2).isqrt()
         return self.x10p(self.Precision*2).isqrt()/mpap(1).x10p(self.Precision*2).isqrt()
 
     def isqrt(self):
         if self.Mantissa == 1 and (self.Exponent % 2) == 0:
             #even power of ten, make use of our base-10 advantage
-            #print ("make use of our base-10 advantage")
             return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True, Precision=self.Precision)
-        elif self.Precision < 15:
-            #use built-in float 
-            #print ("use built-in float")
-            return mpap(math.sqrt(int(self)), Precision=self.Precision)
 
         x = int(self)
-        #print ("isqrt: x is", x)
 
         ####### From libmath #######
         bc = self.bitcount()
@@ -807,7 +702,6 @@ class mpap ():
         else:
             # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
             m = (self/(mpap(2).log())).floor()
-            #print ("m is ", m)
             return (self - m * mpap(2).log()).expsmall() * mpap(2)**m
 
     def digits(self):
@@ -840,7 +734,6 @@ class mpap ():
         if self == 0:
             return mpap(0)
         else:
-            #print ("sine sign is ", self.cos(cosine=False).Sign)
             return self.cos(cosine=False)
 
     def tan (self):
@@ -854,7 +747,6 @@ class mpap ():
     def cos (self, cosine=True):
         #x = x mod 2PI
         x = self % (mpap(2).pi())
-        #print ("x is now ", x)
         x2 = -x*x
         t = mpap(1)
         c = mpap(1)
@@ -887,7 +779,6 @@ class mpap ():
         i = 2
         while abs(t) > mpap(1, -self.Precision):
             t *= x2*(i-1)/i
-            #print (repr(t))
             v += t/(i+1)
             i += 2
         v *= x
@@ -920,7 +811,6 @@ class mpap ():
         return (v + a*f)*m
 
     def endian(self, boundary=8):
-        #print ("self is ", repr(self))
         boundary = int(boundary)
         if boundary == 0:
             boundary = 8;
@@ -928,11 +818,9 @@ class mpap ():
         result = mpap(0)
         while copy != 0:
             result <<= boundary
-            #result |= (copy & int('0b'+'1'*boundary))
             result |= (copy & ((1<<boundary)-1))
             copy >>= boundary
 
-        #print ("result is ", repr(result))
         return result
 
     
@@ -956,7 +844,7 @@ class mpap ():
         self.result = all_multiples(self.result, n, 2)
         self.result = all_multiples(self.result, n, 3)
         
-        for i in range(1, math.sqrt(n) + 1, 6):
+        for i in range(1, int(self.isqrt()) + 1, 6):
             i1 = i + 1
             i2 = i + 5
             if not n % i1:
