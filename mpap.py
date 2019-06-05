@@ -16,10 +16,12 @@
 #
 #########################################################
 MPAPERRORFLAG = ''
-PRECISION = 33
+PRECISION = 19
 class mpap ():
+    PIx2 = 0
+
     # Supported maximum precision digits.
-    Precision = PRECISION
+    Precision = PRECISION+4
 
     # Internal Representation of significant digits + sign.
     Mantissa = None
@@ -39,7 +41,6 @@ class mpap ():
 
     ImagMantissa = 0 
     ImagExponent = 0
-
     # __init__
     # Initialization Function
     # If a non-integer float type is passed to Mantissa, then this number will be converted
@@ -55,7 +56,7 @@ class mpap ():
     # Set InternalAware = True to interpret as internal representation.
     
     # (!) Non-Integer Exponents passed to __init__ are currently unsupported.
-    def __init__(self, Mantissa, Exponent = 0, Precision = PRECISION, InternalAware = False, \
+    def __init__(self, Mantissa, Exponent = 0, Precision = PRECISION+4, InternalAware = False, \
         ImagMantissa = 0, ImagExponent = 0):
 
         if(isinstance(Mantissa, mpap)):
@@ -110,10 +111,11 @@ class mpap ():
 
             # Count exponent for scientific notation
             isFraction = (strManUS.find('.') > -1 and int(strManUS[:strManUS.find('.')]) == 0)
-            if (abs(float(Mantissa)) < 1) or isFraction == True:
-                #-inf and +inf comparisons will be handled
-                #by Python
-                if(float(Mantissa) == 0) and self.Mantissa == 0:
+            #if (abs(float(Mantissa)) < 1) or isFraction == True:
+            if isFraction == True:
+                # numbers that cause single/double-precision float() to overflow
+                # will fail this if-clause
+                if self.Mantissa == 0:
                     #number is 0, .0, 0.0, 0. etc
                     self.Mantissa = 0
                     self.Exponent = 0
@@ -164,6 +166,9 @@ class mpap ():
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
     #enddef init
+
+    def trig(self):
+        self.PIx2 = mpap('6.283185307179586476925286766559005768394338798750211641949889184615632812572417997256069650684234135988')
 
     ########  Query Functions ########
     # bool isInt
@@ -442,6 +447,7 @@ class mpap ():
 
     # __truediv__ (self / other)
     # Implements "true" division
+    @micropython.native
     def __truediv__(self, other):
         if(not isinstance(other, mpap)):
             return self / mpap(other)
@@ -574,6 +580,8 @@ class mpap ():
 
     def pi(self):
         # Pi using Chudnovsky's algorithm
+        if self == 2 and self.Precision < 90:
+            return self.PIx2
         K, M, L, X, S = mpap(6), mpap(1), mpap(13591409), mpap(1), mpap(13591409)
         maxK = self.Precision
         for i in range(1, maxK+1):
@@ -730,39 +738,46 @@ class mpap ():
         s = s0 + s1
         return s
 
-    def sin (self):
-        if self == 0:
-            return mpap(0)
-        else:
-            return self.cos(cosine=False)
-
     def tan (self):
         c = self.cos()
         if c != 0:
-            return self.cos(cosine=False)/c
+            return self.sin()/c
         else:
             MPAPERRORFLAG = "Tangent is undefined."
             return mpap(0)
 
-    def cos (self, cosine=True):
+    def sin (self):
+        #init
+        if self.PIx2 == 0:
+            self.trig()
+        if self == 0:
+            return mpap(0)
         #x = x mod 2PI
-        x = self % (mpap(2).pi())
+        x = self % self.PIx2
+        x2 = -x*x
+        t = mpap(1)
+        s = mpap(1)
+        n = mpap(2)
+        while abs(t) > mpap(1, -self.Precision):
+            t *= x2/((n+1)*n)
+            n += 2
+            s += t
+        s *= x
+        return s
+
+    def cos (self, cosine=True):
+        if self.PIx2 == 0:
+            self.trig()
+        #x = x mod 2PI
+        x = self % self.PIx2
         x2 = -x*x
         t = mpap(1)
         c = mpap(1)
         n = mpap(2)
         while abs(t) > mpap(1, -self.Precision):
-            if cosine == True:
-                #cosine
-                t *= x2/(n*(n-1))
-            else:
-                #sine
-                t *= x2/((n+1)*n)
+            t *= x2/(n*(n-1))
             n += 2
             c += t
-        if cosine == False:
-            #sine
-            c *= x
         return c
 
     def acos (self):
