@@ -1,3 +1,5 @@
+## sin(2*pi*(1e20/(2*pi) - int(1e20/(2*pi))))
+
 #########################################################
 # mpap
 # Minimalistic Python port of ArbitraryPrecision
@@ -16,12 +18,13 @@
 #
 #########################################################
 MPAPERRORFLAG = ''
-PRECISION = 19
-class mpap ():
-    PIx2 = 0
+PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
+BIGGESTNUM = 0
+MAXPRECISION = 50 #N times of PRECISION or more
+import utime
 
-    # Supported maximum precision digits.
-    Precision = PRECISION+4
+class mpap ():
+    PIx2 = '6.283185307179586476925286766559005768394338798750211641949889184615632812572417997256069650684234135988'
 
     # Internal Representation of significant digits + sign.
     Mantissa = None
@@ -54,26 +57,20 @@ class mpap ():
     # for mantissa.
 
     # Set InternalAware = True to interpret as internal representation.
-    
-    # (!) Non-Integer Exponents passed to __init__ are currently unsupported.
-    def __init__(self, Mantissa, Exponent = 0, Precision = PRECISION+4, InternalAware = False, \
+
+    def __init__(self, Mantissa, Exponent = 0, InternalAware = False, \
         ImagMantissa = 0, ImagExponent = 0):
+
+        global PRECISION
+        global MAXPRECISION
+        global BIGGESTNUM
+        global MPAPERRORFLAG
+        #print ("1. Mantissa is ", Mantissa, " of type ", type(Mantissa))
 
         if(isinstance(Mantissa, mpap)):
             self.Mantissa = Mantissa.Mantissa
             self.Exponent = Mantissa.Exponent
             return
-
-        if type (Precision) != int:
-            self.Mantissa = 0
-            self.Exponent = 0
-            MPAPERRORFLAG = "Illegal precision."
-            return
-
-        if Precision < 6:
-            self.Precision = 6
-        else:
-            self.Precision = Precision
 
         try:
             #catch inf in Mantissa and illegal format in Exponent
@@ -91,7 +88,9 @@ class mpap ():
         if (type(Mantissa) == float or type(Mantissa) == str):
             # String rep of mantissa, useful for reuse (strings are immutable), also UnSigned variant
             strMan = str(Mantissa)
+            #print ("1. strMan is ", strMan, " of type ", type(strMan))
             strManUS = strMan.replace('-', '')
+            #print ("1. strManUS is ", strManUS, " of type ", type(strManUS))
             # Extract all significant digits
             if('e' in strMan): # Oops, too small; have to expand notation
                 # Something like 1e-07... significant digits are before e, then 
@@ -110,6 +109,7 @@ class mpap ():
                 self.Mantissa = int(strMan.replace('.', ''))
 
             # Count exponent for scientific notation
+            #print ("2. strManUS is ", strManUS, " of type ", type(strManUS))
             isFraction = (strManUS.find('.') > -1 and int(strManUS[:strManUS.find('.')]) == 0)
             #if (abs(float(Mantissa)) < 1) or isFraction == True:
             if isFraction == True:
@@ -163,23 +163,75 @@ class mpap ():
             i += 1
         self.Mantissa = int (MantissaStr)
 
+        #promote fractional precision for large numbers
+        #print ("self is ", repr(self))
+        PRECISION = max(PRECISION, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
+        BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
+        MAXPRECISION = BIGGESTNUM + 27
+        PRECISION = min(PRECISION, MAXPRECISION)
+        #print ("PRECISION is now ", PRECISION)
+
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
     #enddef init
 
-    def trig(self):
-        self.PIx2 = mpap('6.283185307179586476925286766559005768394338798750211641949889184615632812572417997256069650684234135988')
+    def __truediv__ (self, other):
+        global MPAPERRORFLAG
+        if(not isinstance(other, mpap)):
+            return self / mpap(other)
 
-    ########  Query Functions ########
-    # bool isInt
-    # Is "Integer"?
+        if other == 0:
+            MPAPERRORFLAG = "Division by zero."
+            return mpap(0)
+
+        self.Sign = self.Sign * other.Sign
+
+        # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
+        bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
+        bEOther = len(str(other.Mantissa).replace('-', '')) - 1
+        bEPrecision = 0 # Borrowed Exponent for Precision Division
+
+        # Copies of mantissas
+        mSelf    = abs(self.Mantissa)
+        mOther   = abs(other.Mantissa)
+
+        # Until we reach desired precision... or when we have exhausted the divisor
+        # The signs are all absolute
+        opSelf   = mSelf % mOther
+        opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
+        # Don't see any speed difference compared to when long division
+        # is done using integers
+        while (len(opResult) < PRECISION and opSelf != 0):
+            opSelf = opSelf * 10
+            bEPrecision += 1
+            opResult = opResult + str(opSelf // mOther)
+            opSelf = opSelf % mOther
+            opResult = opResult.lstrip('0')
+
+        if(len(opResult) == 0):
+            return mpap(0)
+
+        bDiv = int(opResult) * self.Sign
+        rteDiv = len(opResult) - 1
+
+        eDiv = self.Exponent - other.Exponent + rteDiv - bESelf + bEOther - bEPrecision
+        return mpap(Mantissa = bDiv, Exponent = eDiv, InternalAware = True)
+
     def isInt(self):
         # 123456 --> (123456, 5)
         return len(str(self.Mantissa).replace('-', '')) <= self.Exponent + 1
 
-    ########  Output Functions  ########
-    #int int
-    def int(self, preserveType = False):
+    def rprec(self):
+        global PRECISION
+        global MAXPRECISION
+        global BIGGESTNUM
+        
+        #print ("called RPREC")
+        PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
+        BIGGESTNUM = 0
+        MAXPRECISION = 50 #N times of PRECISION or more
+
+    def int(self, preserveType = True):
         # 123456 (123456, 5)
         s = str(self.Mantissa).replace('-', '')
         if self.Exponent < 0:
@@ -199,20 +251,15 @@ class mpap ():
             return int(s) * self.Sign
 
     def __int__ (self):
-        return self.int()
+        return self.int(preserveType = False)
 
     def float (self):
         s = str(self.Mantissa)
         return float(('-' if self.Sign == -1 else '') + s[0:1] + '.' + s[1:] + 'e' + str(self.Exponent))
 
-    # __repr__
-    # Official Object Representation
     def __repr__(self):
-        return "mpap(Mantissa = " + str(self.Mantissa) + ", Exponent = " + str(self.Exponent) + \
-                ", Precision = " + str(self.Precision) + ", InternalAware = True)"
+        return "mpap(Mantissa = " + str(self.Mantissa) + ", Exponent = " + str(self.Exponent) + ", InternalAware = True)"
 
-    # __str__
-    # Pretty-Printed Representation of a number
     def __str__(self):
         if self.isInt():
             return str(int(self))
@@ -255,11 +302,9 @@ class mpap ():
         i = self.int(preserveType = True)
         return i if self.Sign >= 0 else i-1
 
-    #########  Modification Functions  ########
     def __neg__(self):
         return mpap(Mantissa = (-1) * self.Mantissa, Exponent = self.Exponent, InternalAware = True)
 
-    #integer division (self // other)
     def __floordiv__ (self, other):
         if(not isinstance(other, mpap)):
             return self // mpap(other)
@@ -267,7 +312,6 @@ class mpap ():
         res = (self / other).floor()
         return res
 
-    # __mod__ (self % other)
     def __mod__ (self, other):
         if(not isinstance(other, mpap)):
             return self % mpap(other)
@@ -280,24 +324,17 @@ class mpap ():
         else:
             return -self
 
-    #########  Comparison Functions  ########
-    # __eq__ (self == other)
     def __eq__(self, other):
         if(not isinstance(other, mpap)):
             return self == mpap(other)
         return self.Mantissa == other.Mantissa and self.Exponent == other.Exponent
 
-    # __hash__
-    # Returns the unique Integer hash of object
     def __hash__(self):
         return hash((self.Mantissa, self.Exponent))
 
-    # __ne__ (self != other)
     def __ne__(self, other):
         return not self == other
 
-    # __lt__ (self < other)
-    # Supports comparing with numbers too.
     def __lt__(self, other):
         if(not isinstance(other, mpap)):
             return self < mpap(other)
@@ -327,19 +364,15 @@ class mpap ():
 
         return mSelf < mOther
 
-    # __le__ (self <= other)
     def __le__(self, other):
         return self == other or self < other
 
-    # __gt__ (self > other)
     def __gt__(self, other):
         return not self < other and not self == other
 
-    # __ge__ (self >= other)
     def __ge__(self, other):
         return self == other or self > other
 
-    #########  Arithmetic Functions  ########
     def __add__(self, other):
         # To perform arithmetic add, we have to align the bits so that they are
         # aligned to the SMALLEST significant position, e.g.
@@ -384,23 +417,20 @@ class mpap ():
         while mSumStr[-1:] == '0' and i <= eSum and mSum != 0:
             mSumStr = mSumStr[:-1]
             i += 1
-
+        
         # cut Mantissa to target precision
         if ((len(mSumStr) - eSum - 1) > 0):
-        #if(len(str(mSum)) > self.Precision):
-            mSum = int(mSumStr[0:self.Precision])
+            mSum = int(mSumStr[0:PRECISION])
         else:
             mSum = int(mSumStr)
-
+        
         result = mpap(Mantissa = mSum, Exponent = eSum, InternalAware = True)
 
         return result
 
-    # __sub__ (self - other)
     def __sub__(self, other):
         return self + (-other)
 
-    # __mul__ (self * other)
     def __mul__(self, other):
         # To perform arithmetic multiplication, the exponents are multiplied together
         # and the mantissa are aligned and multiplied together.
@@ -437,70 +467,24 @@ class mpap ():
                 i <= eProduct and mProduct != 0:
             mProductStr = mProductStr[:-1]
             i += 1
-
+        
         # cut Mantissa to target precision
         if ((len(mProductStr) - eProduct - 1) > 0):
-            mProduct = int(mProductStr[0:self.Precision])
+            mProduct = int(mProductStr[0:PRECISION])
         else:
             mProduct = int(mProductStr)
         return mpap(Mantissa = mProduct, Exponent = eProduct, InternalAware = True)
 
-    # __truediv__ (self / other)
-    # Implements "true" division
-    @micropython.native
-    def __truediv__(self, other):
-        if(not isinstance(other, mpap)):
-            return self / mpap(other)
-        if other == 0:
-            MPAPERRORFLAG = "Division by zero."
-            return mpap(0)
-
-        self.Sign = self.Sign * other.Sign
-
-        # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
-        bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
-        bEOther = len(str(other.Mantissa).replace('-', '')) - 1
-        bEPrecision = 0 # Borrowed Exponent for Precision Division
-
-        # Copies of mantissas
-        mSelf    = abs(self.Mantissa)
-        mOther   = abs(other.Mantissa)
-
-        # Until we reach desired precision... or when we have exhausted the divisor
-        # The signs are all absolute
-        opSelf   = mSelf % mOther
-        opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
-        # Don't see any speed difference compared to when long division
-        # is done using integers
-        while (len(opResult) < self.Precision and opSelf != 0):
-            opSelf = opSelf * 10
-            bEPrecision += 1
-            opResult = opResult + str(opSelf // mOther)
-            opSelf = opSelf % mOther
-            opResult = opResult.lstrip('0')
-
-        if(len(opResult) == 0):
-            return mpap(0)
-
-        bDiv = int(opResult) * self.Sign
-        rteDiv = len(opResult) - 1
-
-        eDiv = self.Exponent - other.Exponent + rteDiv - bESelf + bEOther - bEPrecision
-        return mpap(Mantissa = bDiv, Exponent = eDiv, InternalAware = True)
-
-    # __lshift__ (self << other)
     def __lshift__ (self, other):
         if(not isinstance(other, mpap)):
             return self << mpap(other)
         return self * mpap(2) ** other
 
-    # __rshift__ (self >> other)
     def __rshift__ (self, other):
         if(not isinstance(other, mpap)):
             return self >> mpap(other)
         return self // mpap(2) ** other
 
-    # logical functions on int() of mpap()
     def __xor__ (self, other):
         if(not isinstance(other, mpap)):
             return self ^ mpap(other)
@@ -522,8 +506,8 @@ class mpap ():
     def __not__ (self):
         return mpap(0 if self == 0 else 1)
 
-    # __pow__ (self ** other)
     def __pow__(self, other):
+        global MPAPERRORFLAG
         if(not isinstance(other, mpap)):
             return self ** mpap(other)
         if (self.Sign == -1 and other.Exponent < 0):
@@ -544,7 +528,6 @@ class mpap ():
                     rResult = rResult * self
                 return rResult
 
-    # sgn(self)
     def sgn(self):
         return self.Sign
 
@@ -552,38 +535,39 @@ class mpap ():
         return (other*self.log()).exp()
 
     def log (self):
-        if self.Exponent > 100:
-            ### DO NOT USE for mpaps with exponent smaller than 100! ###
+        if self.Exponent > 1:
             t = self.Exponent - 1
-            self = mpap(self.Mantissa, Exponent = 1)
-            return self.logsmall() + mpap(10).logsmall() * t
+            x = mpap(self.Mantissa, Exponent = 1)
+            return x.logt() + mpap(10).logt() * t
+        elif self > 10:
+            x = self / 10
+            return x.logt() + mpap(10).logt()
         else:
-            #print ("1. self is now ", self)
-            return self.logsmall()
+            return self.logt()
 
     def logt (self):
-        ## Taylor's series tweaked for better convergence
+        global MPAPERRORFLAG
         ## See https://stackoverflow.com/questions/27179674/examples-of-log-algorithm-using-arbitrary-precision-maths
         if (self <= 0):
             MPAPERRORFLAG = "I give up!"
             return mpap (0)
+        t = utime.ticks_ms()
         x = (self-1)/(self+1)
         z = x * x
         log = mpap(0)
         k = 0
         k = 1
-        while x > mpap(1, -self.Precision):
+        while x > mpap(1, -PRECISION):
             log += x * 2 / k
             x *= z
             k+=2
+        print ("Time taken for logt:", utime.ticks_diff(utime.ticks_ms(), t))
         return log
 
     def pi(self):
         # Pi using Chudnovsky's algorithm
-        if self == 2 and self.Precision < 90:
-            return self.PIx2
         K, M, L, X, S = mpap(6), mpap(1), mpap(13591409), mpap(1), mpap(13591409)
-        maxK = self.Precision
+        maxK = PRECISION
         for i in range(1, maxK+1):
             M = (K**3 - K*16) * M // i**3 
             L += 545140134
@@ -593,75 +577,26 @@ class mpap ():
         pi = mpap(10005).sqrt() * 426880 / S
         return pi * self
 
-    def logsmall (self):
-        # return something for the special case.
-        if (self <= 0):
-            MPAPERRORFLAG = "I give up!"
-            return mpap (0)
- 
-        # Precondition x to make 1.2 < x < 1.5
-        f = 1 #mul adjustment (power of 0.5)
-        s = 0 #subtraction adjustment (multiplier of 1.6)
-        if self == 1.0:
-            return mpap (0)
-
-        if self < 1.1:
-            i = 0
-            while self < 1.4:
-                s += 1
-                self = self * 1.6
-                i += 1
-                if i > 100000:
-                    break
-        if self > 1.8:
-            i = 0
-            while self > 1.5:  #for large numbers
-                f *= 2
-                self = self.sqrt()
-                i += 1
-                if i > 100000:
-                    break
-
-            #if we have reduced to too low a value
-            i = 0
-            while self < 1.1:
-                s += 1
-                self = self * 1.6
-                i += 1
-                if i > 100000:
-                    break
-
-        if self < 1.1:
-            print ("Value too low for logt!")
-            MPAPERRORFLAG = "WARNING: Value too low for logt!"
-
-        return self.logt() * f  - mpap(1.6).logt() * s
-
-    def bitcount (self):
-        #v = int(math.log(int(self), 2)+2)
-        #vq = int(len(str(self))*3.3) + 2 # log(10)/log(2)
-        #return int(math.log(int(self), 2)+2)
-        return int(len(str(self))*3.3) + 2 # log(10)/log(2)
-
     def x10p (self, x):
         # multiply by 10^x, where x is an integer
         return mpap(self.Mantissa, self.Exponent+int(x), InternalAware=True)
 
     def sqrt (self):
-        #Use isqrt(x*10^Precision)/isqrt(10^Precision)
-        #n = self.x10p(self.Precision*2).isqrt()
-        #d = mpap(1).x10p(self.Precision*2).isqrt()
-        return self.x10p(self.Precision*2).isqrt()/mpap(1).x10p(self.Precision*2).isqrt()
+        #Use isqrt(x*10^PRECISION)/isqrt(10^PRECISION)
+        #n = self.x10p(self.PRECISION*2).isqrt()
+        #d = mpap(1).x10p(self.PRECISION*2).isqrt()
+        ## -- double the precision is must for accuracy on STM32F4xx
+        return self.x10p(PRECISION*2).isqrt()/mpap(1).x10p(PRECISION*2).isqrt()
 
     def isqrt(self):
         if self.Mantissa == 1 and (self.Exponent % 2) == 0:
             #even power of ten, make use of our base-10 advantage
-            return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True, Precision=self.Precision)
+            return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True)
 
         x = int(self)
 
         ####### From libmath #######
-        bc = self.bitcount()
+        bc = int(len(str(x))*3.3) + 2
         guard_bits = 10
         x <<= 2*guard_bits
         bc += 2*guard_bits
@@ -729,7 +664,7 @@ class mpap ():
         s0 = s1 = mpap(1)
         k = 2
         a = x*x
-        while a > mpap(1, Exponent=-self.Precision):
+        while a > mpap(1, -PRECISION):
             a /= k; s0 += a; k += 1
             a /= k; s1 += a; k += 1
             a *= x*x
@@ -739,6 +674,7 @@ class mpap ():
         return s
 
     def tan (self):
+        global MPAPERRORFLAG
         c = self.cos()
         if c != 0:
             return self.sin()/c
@@ -748,33 +684,30 @@ class mpap ():
 
     def sin (self):
         #init
-        if self.PIx2 == 0:
-            self.trig()
         if self == 0:
             return mpap(0)
-        #x = x mod 2PI
+        t = utime.ticks_ms()
         x = self % self.PIx2
         x2 = -x*x
         t = mpap(1)
         s = mpap(1)
         n = mpap(2)
-        while abs(t) > mpap(1, -self.Precision):
+        while abs(t) > mpap(1, -PRECISION):
             t *= x2/((n+1)*n)
             n += 2
             s += t
         s *= x
+        print ("Time taken for sin:", utime.ticks_diff(utime.ticks_ms(), t))
         return s
 
-    def cos (self, cosine=True):
-        if self.PIx2 == 0:
-            self.trig()
+    def cos (self):
         #x = x mod 2PI
         x = self % self.PIx2
         x2 = -x*x
         t = mpap(1)
         c = mpap(1)
         n = mpap(2)
-        while abs(t) > mpap(1, -self.Precision):
+        while abs(t) > mpap(1, -PRECISION):
             t *= x2/(n*(n-1))
             n += 2
             c += t
@@ -784,6 +717,7 @@ class mpap ():
         return self.asin(acosine=True)
 
     def asin (self, acosine=False):
+        global MPAPERRORFLAG
         if abs(self) > 1:
             return mpap(0)
             MPAPERRORFLAG = "Domain error."
@@ -792,7 +726,7 @@ class mpap ():
         t = mpap(1)
         v = mpap(1)
         i = 2
-        while abs(t) > mpap(1, -self.Precision):
+        while abs(t) > mpap(1, -PRECISION):
             t *= x2*(i-1)/i
             v += t/(i+1)
             i += 2
@@ -817,7 +751,7 @@ class mpap ():
         n = x
         t = mpap(1)
         i = 3
-        while abs(t) > mpap (1, -self.Precision):
+        while abs(t) > mpap (1, -PRECISION):
             n *= x2
             t = n/i
             v += t
