@@ -1,1 +1,1 @@
-Minimalistic Python Arbitrary Precision
+Minimalistic Python Arbitrary Precision Library
