@@ -18,9 +18,11 @@
 #
 #########################################################
 MPAPERRORFLAG = ''
-PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
+
+UPPERLAYER_PRECISON = 27
+
+PRECISION = UPPERLAYER_PRECISON #31 bit PRECISION gives 23 accurate significant digits
 BIGGESTNUM = 0
-MAXPRECISION = 50 #N times of PRECISION or more
 import utime
 
 class mpap ():
@@ -62,9 +64,9 @@ class mpap ():
         ImagMantissa = 0, ImagExponent = 0):
 
         global PRECISION
-        global MAXPRECISION
         global BIGGESTNUM
         global MPAPERRORFLAG
+        global UPPERLAYER_PRECISON
         #print ("1. Mantissa is ", Mantissa, " of type ", type(Mantissa))
 
         if(isinstance(Mantissa, mpap)):
@@ -163,13 +165,12 @@ class mpap ():
             i += 1
         self.Mantissa = int (MantissaStr)
 
-        #promote fractional precision for large numbers
-        #print ("self is ", repr(self))
+        #For numbers with large exponents, grow the precision
         PRECISION = max(PRECISION, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
         BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
-        MAXPRECISION = BIGGESTNUM + 27
-        PRECISION = min(PRECISION, MAXPRECISION)
-        #print ("PRECISION is now ", PRECISION)
+        #but don't let the precision grow beyond the max. precision value of 
+        #(BIGGESTNUM + UPPERLAYER_PRECISON)
+        PRECISION = min(PRECISION, BIGGESTNUM + UPPERLAYER_PRECISON)
 
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
@@ -223,13 +224,16 @@ class mpap ():
 
     def rprec(self):
         global PRECISION
-        global MAXPRECISION
+        global UPPERLAYER_PRECISON
         global BIGGESTNUM
         
         #print ("called RPREC")
-        PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
+        PRECISION = UPPERLAYER_PRECISON #31 bit PRECISION gives 23 accurate significant digits
         BIGGESTNUM = 0
-        MAXPRECISION = 50 #N times of PRECISION or more
+
+    def sprec(self, prec):
+        global UPPERLAYER_PRECISION
+        UPPERLAYER_PRECISION = prec
 
     def int(self, preserveType = True):
         # 123456 (123456, 5)
@@ -602,7 +606,7 @@ class mpap ():
         bc += 2*guard_bits
         bc += (bc&1)
         hbc = bc//2
-        startprec = min(50, hbc)
+        startprec = min(PRECISION*3.3, hbc)
         # Newton iteration for 1/sqrt(x), with floating-point starting value
         r = int(2.0**(2*startprec) * (x >> (bc-2*startprec)) ** -0.5)
         pp = startprec
