@@ -19,9 +19,9 @@
 #########################################################
 MPAPERRORFLAG = ''
 
-UPPERLAYER_PRECISON = 27
+UPPERLAYER_PRECISION = 27
 
-PRECISION = UPPERLAYER_PRECISON #31 bit PRECISION gives 23 accurate significant digits
+PRECISION = UPPERLAYER_PRECISION #31 bit PRECISION gives 23 accurate significant digits
 BIGGESTNUM = 0
 import utime
 
@@ -66,8 +66,7 @@ class mpap ():
         global PRECISION
         global BIGGESTNUM
         global MPAPERRORFLAG
-        global UPPERLAYER_PRECISON
-        #print ("1. Mantissa is ", Mantissa, " of type ", type(Mantissa))
+        global UPPERLAYER_PRECISION
 
         if(isinstance(Mantissa, mpap)):
             self.Mantissa = Mantissa.Mantissa
@@ -90,9 +89,7 @@ class mpap ():
         if (type(Mantissa) == float or type(Mantissa) == str):
             # String rep of mantissa, useful for reuse (strings are immutable), also UnSigned variant
             strMan = str(Mantissa)
-            #print ("1. strMan is ", strMan, " of type ", type(strMan))
             strManUS = strMan.replace('-', '')
-            #print ("1. strManUS is ", strManUS, " of type ", type(strManUS))
             # Extract all significant digits
             if('e' in strMan): # Oops, too small; have to expand notation
                 # Something like 1e-07... significant digits are before e, then 
@@ -100,7 +97,6 @@ class mpap ():
                 strManParts = strMan.split('e')
                 try:
                     self.Mantissa = int(strManParts[0].replace('.', ''))
-                    #print ("self.Mantissa is ", self.Mantissa)
                     Exponent += int(strManParts[1])
                 except (ValueError, OverflowError):
                     self.Mantissa = 0
@@ -111,7 +107,6 @@ class mpap ():
                 self.Mantissa = int(strMan.replace('.', ''))
 
             # Count exponent for scientific notation
-            #print ("2. strManUS is ", strManUS, " of type ", type(strManUS))
             isFraction = (strManUS.find('.') > -1 and int(strManUS[:strManUS.find('.')]) == 0)
             #if (abs(float(Mantissa)) < 1) or isFraction == True:
             if isFraction == True:
@@ -148,7 +143,6 @@ class mpap ():
                 self.Mantissa = Mantissa
                 if(InternalAware):
                     self.Exponent = Exponent
-                    #print ("passed InternalAware exponent is ", Exponent)
                 else:
                     self.Exponent = Exponent + len(str(Mantissa).replace('-', '')) - 1
             
@@ -169,8 +163,8 @@ class mpap ():
         PRECISION = max(PRECISION, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
         BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
         #but don't let the precision grow beyond the max. precision value of 
-        #(BIGGESTNUM + UPPERLAYER_PRECISON)
-        PRECISION = min(PRECISION, BIGGESTNUM + UPPERLAYER_PRECISON)
+        #(BIGGESTNUM + UPPERLAYER_PRECISION)
+        PRECISION = min(PRECISION, BIGGESTNUM + UPPERLAYER_PRECISION)
 
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
@@ -224,11 +218,10 @@ class mpap ():
 
     def rprec(self):
         global PRECISION
-        global UPPERLAYER_PRECISON
+        global UPPERLAYER_PRECISION
         global BIGGESTNUM
         
-        #print ("called RPREC")
-        PRECISION = UPPERLAYER_PRECISON #31 bit PRECISION gives 23 accurate significant digits
+        PRECISION = UPPERLAYER_PRECISION #31 bit PRECISION gives 23 accurate significant digits
         BIGGESTNUM = 0
 
     def sprec(self, prec):
@@ -286,7 +279,6 @@ class mpap ():
     # returns new mantissa as a string with adecimal point
     # and the exponent as an integer
     def sci(self):
-        #print(repr(self), "sign is ", self.Sign)
         strMantissa = str(self.Mantissa)
         strMantissa = strMantissa.replace('-', '')
         lenStrMantissa = len(strMantissa)
@@ -410,14 +402,12 @@ class mpap ():
 
         mSum = mOther + mSelf
         eSum = len(str(mSum).replace('-', '')) - 1 - bECalc
-        #print(mSelf, mOther, mSum, eSum, minESelf, minEOther, bECalc)
 
         #M=100, E=1 and M=10, E=1 both indicate the same number,
         #however, the different values of mantissa will be a problem
         #in numeric comparisons of mantissas, so reduce to the form M=10, E=1
         mSumStr = str(mSum)
         i = 0
-        #print ("mSumStr = ", mSumStr)
         while mSumStr[-1:] == '0' and i <= eSum and mSum != 0:
             mSumStr = mSumStr[:-1]
             i += 1
@@ -569,15 +559,18 @@ class mpap ():
         return log
 
     def pi(self):
+        global UPPERLAYER_PRECISION
         # Pi using Chudnovsky's algorithm
         K, M, L, X, S = mpap(6), mpap(1), mpap(13591409), mpap(1), mpap(13591409)
-        maxK = PRECISION
+        #NOTE: only for precision <= 27!!!
+        maxK = UPPERLAYER_PRECISION//5
         for i in range(1, maxK+1):
             M = (K**3 - K*16) * M // i**3 
             L += 545140134
             X *= -262537412640768000
             S += M * L / X
             K += 12
+        Z = mpap(10005).sqrt()
         pi = mpap(10005).sqrt() * 426880 / S
         return pi * self
 
@@ -586,13 +579,15 @@ class mpap ():
         return mpap(self.Mantissa, self.Exponent+int(x), InternalAware=True)
 
     def sqrt (self):
-        #Use isqrt(x*10^PRECISION)/isqrt(10^PRECISION)
-        #n = self.x10p(self.PRECISION*2).isqrt()
-        #d = mpap(1).x10p(self.PRECISION*2).isqrt()
-        ## -- double the precision is must for accuracy on STM32F4xx
-        return self.x10p(PRECISION*2).isqrt()/mpap(1).x10p(PRECISION*2).isqrt()
+        global UPPERLAYER_PRECISION
+        print ("self is: ", self)
+        A = self.x10p(UPPERLAYER_PRECISION*2+10).isqrt()
+        A.Exponent -= (UPPERLAYER_PRECISION+5)
+        return A
 
     def isqrt(self):
+        global UPPERLAYER_PRECISION
+        #bits per digit ~ 3.4
         if self.Mantissa == 1 and (self.Exponent % 2) == 0:
             #even power of ten, make use of our base-10 advantage
             return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True)
@@ -600,13 +595,13 @@ class mpap ():
         x = int(self)
 
         ####### From libmath #######
-        bc = int(len(str(x))*3.3) + 2
+        bc = int(len(str(x))*4) + 2
         guard_bits = 10
         x <<= 2*guard_bits
         bc += 2*guard_bits
         bc += (bc&1)
         hbc = bc//2
-        startprec = min(PRECISION*3.3, hbc)
+        startprec = min(4*UPPERLAYER_PRECISION, hbc)
         # Newton iteration for 1/sqrt(x), with floating-point starting value
         r = int(2.0**(2*startprec) * (x >> (bc-2*startprec)) ** -0.5)
         pp = startprec
