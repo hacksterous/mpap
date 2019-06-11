@@ -1,5 +1,3 @@
-## sin(2*pi*(1e20/(2*pi) - int(1e20/(2*pi))))
-
 #########################################################
 # mpap
 # Minimalistic Python port of ArbitraryPrecision
@@ -22,7 +20,7 @@ MPAPERRORFLAG = ''
 UPPERLAYER_PRECISION = 27
 
 PRECISION = UPPERLAYER_PRECISION #31 bit PRECISION gives 23 accurate significant digits
-BIGGESTNUM = 0
+BIGGESTNUM = 1
 import utime
 
 class mpap ():
@@ -168,6 +166,7 @@ class mpap ():
 
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
+        return
     #enddef init
 
     def __truediv__ (self, other):
@@ -222,7 +221,7 @@ class mpap ():
         global BIGGESTNUM
         
         PRECISION = UPPERLAYER_PRECISION #31 bit PRECISION gives 23 accurate significant digits
-        BIGGESTNUM = 0
+        BIGGESTNUM = 1
 
     def sprec(self, prec):
         global UPPERLAYER_PRECISION
@@ -282,8 +281,7 @@ class mpap ():
         strMantissa = str(self.Mantissa)
         strMantissa = strMantissa.replace('-', '')
         lenStrMantissa = len(strMantissa)
-        diff = self.Exponent - lenStrMantissa + 1
-        #if  diff > 0:
+        diff = self.Exponent - lenStrMantissa + 4 # 3 additional places
         strMantissa = strMantissa + '0'*diff
         expo = self.Exponent
         multfac = self.Exponent % 3 + 1
@@ -529,22 +527,22 @@ class mpap ():
         return (other*self.log()).exp()
 
     def log (self):
-        if self.Exponent > 1:
-            t = self.Exponent - 1
-            x = mpap(self.Mantissa, Exponent = 1)
+        if self.Exponent > 0:
+            t = self.Exponent
+            x = mpap(self.Mantissa, Exponent = 0)
             return x.logt() + mpap(10).logt() * t
-        elif self > 10:
-            x = self / 10
-            return x.logt() + mpap(10).logt()
         else:
             return self.logt()
 
     def logt (self):
+        global PRECISION
         global MPAPERRORFLAG
         ## See https://stackoverflow.com/questions/27179674/examples-of-log-algorithm-using-arbitrary-precision-maths
         if (self <= 0):
             MPAPERRORFLAG = "I give up!"
             return mpap (0)
+        if (self == 1):
+            return mpap(0)
         t = utime.ticks_ms()
         x = (self-1)/(self+1)
         z = x * x
@@ -650,6 +648,7 @@ class mpap ():
         return len(str(int(self)))
 
     def expsmall(self):
+        global PRECISION
         # Compute exp(x) as a fixed-point number. Works for any x,
         # but for speed should have |x| < 1. For an arbitrary number,
         # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
@@ -673,6 +672,7 @@ class mpap ():
         return s
 
     def tan (self):
+        global PRECISION
         global MPAPERRORFLAG
         c = self.cos()
         if c != 0:
@@ -682,6 +682,7 @@ class mpap ():
             return mpap(0)
 
     def sin (self):
+        global PRECISION
         #init
         if self == 0:
             return mpap(0)
@@ -700,6 +701,7 @@ class mpap ():
         return s
 
     def cos (self):
+        global PRECISION
         #x = x mod 2PI
         x = self % self.PIx2
         x2 = -x*x
@@ -716,6 +718,7 @@ class mpap ():
         return self.asin(acosine=True)
 
     def asin (self, acosine=False):
+        global PRECISION
         global MPAPERRORFLAG
         if abs(self) > 1:
             return mpap(0)
@@ -733,6 +736,7 @@ class mpap ():
         return mpap(1).pi()/2 - v if acosine==True else v
 
     def atan (self):
+        global PRECISION
         x = self
         m = 1
         if self < 0:
