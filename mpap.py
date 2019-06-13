@@ -292,6 +292,11 @@ class mpap ():
             man += '0'
         return man, expo
 
+    # similar to sci(), but returns a single string as ###.#######e###
+    def scistr(self):
+        m, e = self.sci()
+        return m + 'e' + str(e)
+
     def floor(self):
         i = self.int(preserveType = True)
         return i if self.Sign >= 0 else i-1
