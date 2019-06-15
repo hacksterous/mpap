@@ -17,6 +17,8 @@ The number 10001 is stored as:
 >>> mpap(1001)
 mpap(Mantissa = 1001, Exponent = 3, InternalAware = True)
 ```
+*In the internal representation, the decimal point is always after the leftmost digit.*
+See more details below.
 
 Floats are rounded to the precision supported by the Python implementation (CPython double precision below:)
 ```
@@ -53,6 +55,23 @@ Higher precision floats must be passed as strings:
 >>> mpap('1.234567891234567891234567')
 mpap(Mantissa = 1234567891234567891234567, Exponent = 0, InternalAware = True)
 ```
+
+### The *InternalAware* parameter passed to MPAP
+When InternalAware is *False*, the Mantissa is interpreted as a literal number. The default value
+for InternalAware is *False*.
+```
+>>> mpap(1393821, InternalAware=False)
+mpap(Mantissa = 1393821, Exponent = 6, InternalAware = True)
+```
+In the above case, the value of the number is 1393821, i.e., 1.393821e6
+```
+>>> mpap(1393821, InternalAware=True)
+mpap(Mantissa = 1393821, Exponent = 0, InternalAware = True)
+```
+In this case, the value of the number is 1.393821, i.e., 1.393821e0
+
+
+### Functions supported
 
 Mathematical functions supported are: sine, cosine, tangent and inverse function of these; exponential (base of natural logarithm),
 natural logarithm, square root, integer square root and pi (using Chudnovsky series).
