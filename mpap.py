@@ -17,11 +17,14 @@
 #########################################################
 MPAPERRORFLAG = ''
 
-UPPERLAYER_PRECISION = 27
+MAX_PRECISION_HARD_LIMIT = 1000
 
-PRECISION = UPPERLAYER_PRECISION #31 bit PRECISION gives 23 accurate significant digits
+PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
 BIGGESTNUM = 1
-import utime
+#import utime
+
+def finish ():
+    pass
 
 class mpap ():
     PIx2 = '6.283185307179586476925286766559005768394338798750211641949889184615632812572417997256069650684234135988'
@@ -64,7 +67,6 @@ class mpap ():
         global PRECISION
         global BIGGESTNUM
         global MPAPERRORFLAG
-        global UPPERLAYER_PRECISION
 
         if(isinstance(Mantissa, mpap)):
             self.Mantissa = Mantissa.Mantissa
@@ -161,8 +163,8 @@ class mpap ():
         PRECISION = max(PRECISION, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
         BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
         #but don't let the precision grow beyond the max. precision value of 
-        #(BIGGESTNUM + UPPERLAYER_PRECISION)
-        PRECISION = min(PRECISION, BIGGESTNUM + UPPERLAYER_PRECISION)
+        PRECISION = max(PRECISION, BIGGESTNUM)
+        PRECISION = min(PRECISION, MAX_PRECISION_HARD_LIMIT)
 
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
@@ -217,15 +219,12 @@ class mpap ():
 
     def rprec(self):
         global PRECISION
-        global UPPERLAYER_PRECISION
         global BIGGESTNUM
-        
-        PRECISION = UPPERLAYER_PRECISION #31 bit PRECISION gives 23 accurate significant digits
         BIGGESTNUM = 1
+        PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
 
     def sprec(self, prec):
-        global UPPERLAYER_PRECISION
-        UPPERLAYER_PRECISION = prec
+        PRECISION = prec
 
     def int(self, preserveType = True):
         # 123456 (123456, 5)
@@ -548,7 +547,7 @@ class mpap ():
             return mpap (0)
         if (self == 1):
             return mpap(0)
-        t = utime.ticks_ms()
+        #t = utime.ticks_ms()
         x = (self-1)/(self+1)
         z = x * x
         log = mpap(0)
@@ -558,15 +557,15 @@ class mpap ():
             log += x * 2 / k
             x *= z
             k+=2
-        print ("Time taken for logt:", utime.ticks_diff(utime.ticks_ms(), t))
+        #print ("Time taken for logt:", utime.ticks_diff(utime.ticks_ms(), t))
         return log
 
     def pi(self):
-        global UPPERLAYER_PRECISION
+        global PRECISION
         # Pi using Chudnovsky's algorithm
         K, M, L, X, S = mpap(6), mpap(1), mpap(13591409), mpap(1), mpap(13591409)
         #NOTE: only for precision <= 27!!!
-        maxK = UPPERLAYER_PRECISION//5
+        maxK = min(PRECISION//5, 50)
         for i in range(1, maxK+1):
             M = (K**3 - K*16) * M // i**3 
             L += 545140134
@@ -582,14 +581,13 @@ class mpap ():
         return mpap(self.Mantissa, self.Exponent+int(x), InternalAware=True)
 
     def sqrt (self):
-        global UPPERLAYER_PRECISION
+        global PRECISION
         print ("self is: ", self)
-        A = self.x10p(UPPERLAYER_PRECISION*2+10).isqrt()
-        A.Exponent -= (UPPERLAYER_PRECISION+5)
+        A = self.x10p(PRECISION*2+10).isqrt()
+        A.Exponent -= (PRECISION+5)
         return A
 
     def isqrt(self):
-        global UPPERLAYER_PRECISION
         #bits per digit ~ 3.4
         if self.Mantissa == 1 and (self.Exponent % 2) == 0:
             #even power of ten, make use of our base-10 advantage
@@ -604,7 +602,7 @@ class mpap ():
         bc += 2*guard_bits
         bc += (bc&1)
         hbc = bc//2
-        startprec = min(4*UPPERLAYER_PRECISION, hbc)
+        startprec = min(4*PRECISION, hbc)
         # Newton iteration for 1/sqrt(x), with floating-point starting value
         r = int(2.0**(2*startprec) * (x >> (bc-2*startprec)) ** -0.5)
         pp = startprec
@@ -691,7 +689,7 @@ class mpap ():
         #init
         if self == 0:
             return mpap(0)
-        t = utime.ticks_ms()
+        #t = utime.ticks_ms()
         x = self % self.PIx2
         x2 = -x*x
         t = mpap(1)
@@ -702,7 +700,7 @@ class mpap ():
             n += 2
             s += t
         s *= x
-        print ("Time taken for sin:", utime.ticks_diff(utime.ticks_ms(), t))
+        #print ("Time taken for sin:", utime.ticks_diff(utime.ticks_ms(), t))
         return s
 
     def cos (self):
