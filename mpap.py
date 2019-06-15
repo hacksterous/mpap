@@ -26,6 +26,17 @@ BIGGESTNUM = 1
 def finish ():
     pass
 
+def rprec():
+    global PRECISION
+    global BIGGESTNUM
+    BIGGESTNUM = 1
+    PRECISION = 27
+
+def sprec(prec):
+    global ROUNDING_MODE
+    global PRECISION
+    PRECISION = prec
+
 class mpap ():
     PIx2 = '6.283185307179586476925286766559005768394338798750211641949889184615632812572417997256069650684234135988'
 
