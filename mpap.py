@@ -35,6 +35,7 @@ def rprec():
 def sprec(prec):
     global ROUNDING_MODE
     global PRECISION
+    BIGGESTNUM = 1
     PRECISION = prec
 
 class mpap ():
