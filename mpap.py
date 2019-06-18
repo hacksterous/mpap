@@ -594,9 +594,9 @@ class mpap ():
 
     def sqrt (self):
         global PRECISION
-        print ("self is: ", self)
-        A = self.x10p(PRECISION*2+10).isqrt()
-        A.Exponent -= (PRECISION+5)
+        localprec = PRECISION
+        A = self.x10p(localprec*2+10).isqrt()
+        A.Exponent -= (localprec+5)
         return A
 
     def isqrt(self):
