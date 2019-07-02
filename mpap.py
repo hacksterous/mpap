@@ -589,7 +589,8 @@ class mpap ():
         log = mpap(0)
         k = 0
         k = 1
-        while x > mpap(1, -PRECISION):
+        prec = PRECISION
+        while x > mpap(1, -prec):
             log += x * 2 / k
             x *= z
             k+=2
