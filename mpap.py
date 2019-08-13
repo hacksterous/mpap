@@ -15,10 +15,9 @@
 # HW-2, Peking University, School of Physics, Fall 2017
 #
 #########################################################
+MPBF_DEGREES_MODE = False
 MPAPERRORFLAG = ''
-
 MAX_PRECISION_HARD_LIMIT = 1000
-
 PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
 BIGGESTNUM = 1
 #import utime
@@ -714,9 +713,16 @@ class mpap ():
     def tan (self):
         global PRECISION
         global MPAPERRORFLAG
-        c = self.cos()
+        if MPBF_DEGREES_MODE == True:
+            d2r = mpap('3.1415926535897932384626433832795') / 180
+            c = (self * d2r).cos()
+        else:
+            c = self.cos()
         if c != 0:
-            return self.sin()/c
+            if MPBF_DEGREES_MODE == True:
+                return (self * d2r).sin()/c
+            else:
+                return self.sin()/c
         else:
             MPAPERRORFLAG = "Tangent is undefined."
             return mpap(0)
@@ -727,7 +733,12 @@ class mpap ():
         if self == 0:
             return mpap(0)
         #t = utime.ticks_ms()
-        x = self % self.PIx2
+        if MPBF_DEGREES_MODE == True:
+            x = self * mpap('3.1415926535897932384626433832795') / 180
+        else:
+            x = self
+
+        x = x % self.PIx2
         x2 = -x*x
         t = mpap(1)
         s = mpap(1)
@@ -742,8 +753,12 @@ class mpap ():
 
     def cos (self):
         global PRECISION
+        if MPBF_DEGREES_MODE == True:
+            x = self * mpap('3.1415926535897932384626433832795') / 180
+        else:
+            x = self
         #x = x mod 2PI
-        x = self % self.PIx2
+        x = x % self.PIx2
         x2 = -x*x
         t = mpap(1)
         c = mpap(1)
@@ -773,7 +788,11 @@ class mpap ():
             v += t/(i+1)
             i += 2
         v *= x
-        return mpap(1).pi()/2 - v if acosine==True else v
+        if MPBF_DEGREES_MODE == True:
+            r2d = mpap(180) / mpap('3.1415926535897932384626433832795')
+            return (mpap(1).pi()/2 - v)*r2d  if acosine==True else v*r2d
+        else:
+            return mpap(1).pi()/2 - v if acosine==True else v
 
     def atan (self):
         global PRECISION
@@ -800,7 +819,11 @@ class mpap ():
             v += t
             i += 2
         
-        return (v + a*f)*m
+        if MPBF_DEGREES_MODE == True:
+            r2d = mpap(180) / mpap('3.1415926535897932384626433832795')
+            return (v + (a/r2d)*f)*m*r2d
+        else:
+            return (v + a*f)*m
 
     def endian(self, boundary=8):
         boundary = int(boundary)
