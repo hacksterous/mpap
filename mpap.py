@@ -88,6 +88,7 @@ class mpap ():
             #catch inf in Mantissa and illegal format in Exponent
             if type(Mantissa) == float:
                 if str(float(Mantissa)) == 'inf' or str(float(Mantissa)) == '-inf' or \
+                    str(float(Mantissa)) == 'nan' or str(float(Exponent)) == 'nan' or \
                     str(float(Exponent)) == 'inf' or str(float(Exponent)) == '-inf':
                     raise OverflowError
             Exponent = int(Exponent)
@@ -227,6 +228,12 @@ class mpap ():
     def isInt(self):
         # 123456 --> (123456, 5)
         return len(str(self.Mantissa).replace('-', '')) <= self.Exponent + 1
+
+    def isNaNInf (self):
+        return self.Mantissa == None and self.Exponent == 0
+
+    def isNone (self):
+        return self.Mantissa == None or self.Exponent == None
 
     def rprec(self):
         global PRECISION
