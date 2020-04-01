@@ -15,11 +15,11 @@
 # HW-2, Peking University, School of Physics, Fall 2017
 #
 #########################################################
-MPBF_DEGREES_MODE = False
+MPAP_DEGREES_MODE = False
 MPAPERRORFLAG = ''
 MAX_PRECISION_HARD_LIMIT = 1000
 PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
-BIGGESTNUM = 1
+#BIGGESTNUM = 1
 #import utime
 
 def finish ():
@@ -27,14 +27,14 @@ def finish ():
 
 def rprec():
     global PRECISION
-    global BIGGESTNUM
-    BIGGESTNUM = 1
+    #global BIGGESTNUM
+    #BIGGESTNUM = 1
     PRECISION = 27
 
 def sprec(prec):
-    global ROUNDING_MODE
     global PRECISION
-    BIGGESTNUM = 1
+    #global BIGGESTNUM
+    #BIGGESTNUM = 1
     PRECISION = prec
 
 class mpap ():
@@ -79,6 +79,7 @@ class mpap ():
         global BIGGESTNUM
         global MPAPERRORFLAG
 
+        self.Precision = PRECISION
         if(isinstance(Mantissa, mpap)):
             self.Mantissa = Mantissa.Mantissa
             self.Exponent = Mantissa.Exponent
@@ -172,11 +173,17 @@ class mpap ():
         self.Mantissa = int (MantissaStr)
 
         #For numbers with large exponents, grow the precision
-        PRECISION = max(PRECISION, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
-        BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
+        #print ("self is ", str(self))
+        #print ("self.Exponent is ", self.Exponent)
+        self.Precision = max(self.Precision, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
+        #print ("self.Precision is 1 set to ", self.Precision)
+        #BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
+        #print ("BIGGESTNUM is 1 set to ", BIGGESTNUM)
         #but don't let the precision grow beyond the max. precision value of 
-        PRECISION = max(PRECISION, BIGGESTNUM)
-        PRECISION = min(PRECISION, MAX_PRECISION_HARD_LIMIT)
+        #self.Precision = max(self.Precision, BIGGESTNUM)
+        #print ("self.Precision is 2 set to ", self.Precision)
+        self.Precision = min(self.Precision, MAX_PRECISION_HARD_LIMIT)
+        #print ("self.Precision is 3 set to ", self.Precision)
 
         #zero value has sign 0
         self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
@@ -209,7 +216,7 @@ class mpap ():
         opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
         # Don't see any speed difference compared to when long division
         # is done using integers
-        while (len(opResult) < PRECISION and opSelf != 0):
+        while (len(opResult) < self.Precision and opSelf != 0):
             opSelf = opSelf * 10
             bEPrecision += 1
             opResult = opResult + str(opSelf // mOther)
@@ -234,15 +241,6 @@ class mpap ():
 
     def isNone (self):
         return self.Mantissa == None or self.Exponent == None
-
-    def rprec(self):
-        global PRECISION
-        global BIGGESTNUM
-        BIGGESTNUM = 1
-        PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
-
-    def sprec(self, prec):
-        PRECISION = prec
 
     def int(self, preserveType = True):
         # 123456 (123456, 5)
@@ -458,7 +456,7 @@ class mpap ():
         
         # cut Mantissa to target precision
         if ((len(mSumStr) - eSum - 1) > 0):
-            mSum = int(mSumStr[0:PRECISION])
+            mSum = int(mSumStr[0:self.Precision])
         else:
             mSum = int(mSumStr)
         
@@ -508,7 +506,7 @@ class mpap ():
         
         # cut Mantissa to target precision
         if ((len(mProductStr) - eProduct - 1) > 0):
-            mProduct = int(mProductStr[0:PRECISION])
+            mProduct = int(mProductStr[0:self.Precision])
         else:
             mProduct = int(mProductStr)
         return mpap(Mantissa = mProduct, Exponent = eProduct, InternalAware = True)
@@ -581,7 +579,6 @@ class mpap ():
             return self.logt()
 
     def logt (self):
-        global PRECISION
         global MPAPERRORFLAG
         ## See https://stackoverflow.com/questions/27179674/examples-of-log-algorithm-using-arbitrary-precision-maths
         if (self <= 0):
@@ -595,8 +592,8 @@ class mpap ():
         log = mpap(0)
         k = 0
         k = 1
-        prec = PRECISION
-        while x > mpap(1, -prec):
+        prec = self.Precision
+        while abs(x) > mpap(1, -prec):
             log += x * 2 / k
             x *= z
             k+=2
@@ -604,11 +601,10 @@ class mpap ():
         return log
 
     def pi(self):
-        global PRECISION
         # Pi using Chudnovsky's algorithm
         K, M, L, X, S = mpap(6), mpap(1), mpap(13591409), mpap(1), mpap(13591409)
         #NOTE: only for precision <= 27!!!
-        maxK = min(PRECISION//5, 50)
+        maxK = min(self.Precision//5, 50)
         for i in range(1, maxK+1):
             M = (K**3 - K*16) * M // i**3 
             L += 545140134
@@ -624,63 +620,28 @@ class mpap ():
         return mpap(self.Mantissa, self.Exponent+int(x), InternalAware=True)
 
     def sqrt (self):
-        global PRECISION
-        localprec = PRECISION
+        localprec = self.Precision
         A = self.x10p(localprec*2+10).isqrt()
         A.Exponent -= (localprec+5)
         return A
 
     def isqrt(self):
-        #bits per digit ~ 3.4
         if self.Mantissa == 1 and (self.Exponent % 2) == 0:
             #even power of ten, make use of our base-10 advantage
             return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True)
 
+        #Naive implementation O(n*n)
+        #https://cs.stackexchange.com/questions/37596/arbitrary-precision-integer-square-root-algorithm
         x = int(self)
-
-        ####### From libmath #######
-        bc = int(len(str(x))*4) + 2
-        guard_bits = 10
-        x <<= 2*guard_bits
-        bc += 2*guard_bits
-        bc += (bc&1)
-        hbc = bc//2
-        startprec = min(4*PRECISION, hbc)
-        # Newton iteration for 1/sqrt(x), with floating-point starting value
-        r = int(2.0**(2*startprec) * (x >> (bc-2*startprec)) ** -0.5)
-        pp = startprec
-        for p in self.giant_steps(startprec, hbc):
-            # r**2, scaled from real size 2**(-bc) to 2**p
-            r2 = (r*r) >> (2*pp - p)
-            # x*r**2, scaled from real size ~1.0 to 2**p
-            xr2 = ((x >> (bc-p)) * r2) >> p
-            # New value of r, scaled from real size 2**(-bc/2) to 2**p
-            r = (r * ((3<<p) - xr2)) >> (pp+1)
-            pp = p
-        # (1/sqrt(x))*x = sqrt(x)
-        return mpap((r*(x>>hbc)) >> (p+guard_bits))
-
-    def giant_steps(self, start, target, n=2):
-        ## Return a list of integers ~=
-         
-        ## [start, n*start, ..., target/n^2, target/n, target]
-         
-        ## but conservatively rounded so that the quotient between two
-        ## successive elements is actually slightly less than n.
-         
-        ## With n = 2, this describes suitable precision steps for a
-        ## quadratically convergent algorithm such as Newton's method;
-        ## with n = 3 steps for cubic convergence (Halley's method), etc.
-         
-        ##     >>> giant_steps(50,1000)
-        ##     [66, 128, 253, 502, 1000]
-        ##     >>> giant_steps(50,1000,4)
-        ##     [65, 252, 1000]
-        
-        L = [target]
-        while L[-1] > start*n:
-            L = L + [L[-1]//n + 2]
-        return L[::-1]
+        r = 0
+        i = x.bit_length()
+        while i >= 0:
+            inc = (r << (i+1)) + (1 << (i*2))
+            if inc <= x:
+                x -= inc
+                r += 1 << i
+            i -= 1
+        return mpap(r)
 
     def exp (self):
         if abs(self) < 2000:
@@ -694,7 +655,7 @@ class mpap ():
         return len(str(int(self)))
 
     def expsmall(self):
-        global PRECISION
+        print ("expsmall: self.Precision=", self.Precision)
         # Compute exp(x) as a fixed-point number. Works for any x,
         # but for speed should have |x| < 1. For an arbitrary number,
         # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
@@ -708,7 +669,7 @@ class mpap ():
         s0 = s1 = mpap(1)
         k = 2
         a = x*x
-        while a > mpap(1, -PRECISION):
+        while a > mpap(1, -self.Precision):
             a /= k; s0 += a; k += 1
             a /= k; s1 += a; k += 1
             a *= x*x
@@ -718,15 +679,16 @@ class mpap ():
         return s
 
     def tan (self):
-        global PRECISION
         global MPAPERRORFLAG
-        if MPBF_DEGREES_MODE == True:
-            d2r = mpap('3.1415926535897932384626433832795') / 180
+        global MPAP_DEGREES_MODE
+        if MPAP_DEGREES_MODE == True:
+            #d2r = mpap('3.1415926535897932384626433832795') / 180
+            d2r = mpap(1).pi() / 180
             c = (self * d2r).cos()
         else:
             c = self.cos()
         if c != 0:
-            if MPBF_DEGREES_MODE == True:
+            if MPAP_DEGREES_MODE == True:
                 return (self * d2r).sin()/c
             else:
                 return self.sin()/c
@@ -735,22 +697,23 @@ class mpap ():
             return mpap(0)
 
     def sin (self):
-        global PRECISION
-        #init
+        global MPAP_DEGREES_MODE
         if self == 0:
             return mpap(0)
         #t = utime.ticks_ms()
-        if MPBF_DEGREES_MODE == True:
-            x = self * mpap('3.1415926535897932384626433832795') / 180
+        if MPAP_DEGREES_MODE == True:
+            #x = self * mpap('3.1415926535897932384626433832795') / 180
+            x = self * mpap(1).pi() / mpap(180)
         else:
             x = self
 
-        x = x % self.PIx2
+        #x = x % self.PIx2
+        x = x % mpap(2).pi()
         x2 = -x*x
         t = mpap(1)
         s = mpap(1)
         n = mpap(2)
-        while abs(t) > mpap(1, -PRECISION):
+        while abs(t) > mpap(1, -self.Precision):
             t *= x2/((n+1)*n)
             n += 2
             s += t
@@ -759,18 +722,20 @@ class mpap ():
         return s
 
     def cos (self):
-        global PRECISION
-        if MPBF_DEGREES_MODE == True:
-            x = self * mpap('3.1415926535897932384626433832795') / 180
+        global MPAP_DEGREES_MODE
+        if MPAP_DEGREES_MODE == True:
+            #x = self * mpap('3.1415926535897932384626433832795') / 180
+            x = self * mpap(1).pi() / mpap(180)
         else:
             x = self
-        #x = x mod 2PI
-        x = x % self.PIx2
+
+        #x = x % self.PIx2
+        x = x % mpap(2).pi()
         x2 = -x*x
         t = mpap(1)
         c = mpap(1)
         n = mpap(2)
-        while abs(t) > mpap(1, -PRECISION):
+        while abs(t) > mpap(1, -self.Precision):
             t *= x2/(n*(n-1))
             n += 2
             c += t
@@ -780,8 +745,8 @@ class mpap ():
         return self.asin(acosine=True)
 
     def asin (self, acosine=False):
-        global PRECISION
         global MPAPERRORFLAG
+        global MPAP_DEGREES_MODE
         if abs(self) > 1:
             return mpap(0)
             MPAPERRORFLAG = "Domain error."
@@ -790,19 +755,22 @@ class mpap ():
         t = mpap(1)
         v = mpap(1)
         i = 2
-        while abs(t) > mpap(1, -PRECISION):
+        while abs(t) > mpap(1, -self.Precision):
             t *= x2*(i-1)/i
             v += t/(i+1)
             i += 2
         v *= x
-        if MPBF_DEGREES_MODE == True:
-            r2d = mpap(180) / mpap('3.1415926535897932384626433832795')
-            return (mpap(1).pi()/2 - v)*r2d  if acosine==True else v*r2d
+        if MPAP_DEGREES_MODE == True:
+            #r2d = mpap(180) / mpap('3.1415926535897932384626433832795')
+            r2d = mpap(180) / mpap(1).pi()
+            #return (mpap(1).pi()/2 - v)*r2d  if acosine==True else v*r2d
+            return (mpap(0.5).pi() - v)*r2d  if acosine==True else v*r2d
         else:
-            return mpap(1).pi()/2 - v if acosine==True else v
+            #return mpap(1).pi()/2 - v if acosine==True else v
+            return mpap(0.5).pi() - v if acosine==True else v
 
     def atan (self):
-        global PRECISION
+        global MPAP_DEGREES_MODE
         x = self
         m = 1
         if self < 0:
@@ -820,14 +788,15 @@ class mpap ():
         n = x
         t = mpap(1)
         i = 3
-        while abs(t) > mpap (1, -PRECISION):
+        while abs(t) > mpap (1, -self.Precision):
             n *= x2
             t = n/i
             v += t
             i += 2
         
-        if MPBF_DEGREES_MODE == True:
-            r2d = mpap(180) / mpap('3.1415926535897932384626433832795')
+        if MPAP_DEGREES_MODE == True:
+            #r2d = mpap(180) / mpap('3.1415926535897932384626433832795')
+            r2d = mpap(180) / mpap(1).pi()
             return (v + (a/r2d)*f)*m*r2d
         else:
             return (v + a*f)*m
