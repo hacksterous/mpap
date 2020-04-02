@@ -175,13 +175,9 @@ class mpap ():
         #For numbers with large exponents, grow the precision
         #print ("self is ", str(self))
         #print ("self.Exponent is ", self.Exponent)
-        self.Precision = max(self.Precision, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
+        #FIXME
+        #self.Precision = max(self.Precision, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
         #print ("self.Precision is 1 set to ", self.Precision)
-        #BIGGESTNUM = max(BIGGESTNUM, self.Exponent+1)
-        #print ("BIGGESTNUM is 1 set to ", BIGGESTNUM)
-        #but don't let the precision grow beyond the max. precision value of 
-        #self.Precision = max(self.Precision, BIGGESTNUM)
-        #print ("self.Precision is 2 set to ", self.Precision)
         self.Precision = min(self.Precision, MAX_PRECISION_HARD_LIMIT)
         #print ("self.Precision is 3 set to ", self.Precision)
 
@@ -519,7 +515,7 @@ class mpap ():
     def __rshift__ (self, other):
         if(not isinstance(other, mpap)):
             return self >> mpap(other)
-        return self // mpap(2) ** other
+        return self / mpap(2) ** other
 
     def __xor__ (self, other):
         if(not isinstance(other, mpap)):
@@ -611,72 +607,113 @@ class mpap ():
             X *= -262537412640768000
             S += M * L / X
             K += 12
-        Z = mpap(10005).sqrt()
-        pi = mpap(10005).sqrt() * 426880 / S
+        Z = mpap(10005).sqrtnaive()
+        pi = Z * 426880 / S
         return pi * self
 
     def x10p (self, x):
         # multiply by 10^x, where x is an integer
         return mpap(self.Mantissa, self.Exponent+int(x), InternalAware=True)
 
-    def sqrt (self):
+    def sqrtnaive (self):
+        def isqrtnaive(self):
+            #Naive implementation O(n*n)
+            #https://cs.stackexchange.com/questions/37596/arbitrary-precision-integer-square-root-algorithm
+            x = int(self)
+            r = 0
+            i = x.bit_length()
+            while i >= 0:
+                inc = (r << (i+1)) + (1 << (i*2))
+                if inc <= x:
+                    x -= inc
+                    r += 1 << i
+                i -= 1
+            return mpap(r)
+
+        if self.Mantissa == 1 and (self.Exponent % 2) == 0:
+            #even power of ten, make use of our base-10 advantage
+            return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True)
+    
         localprec = self.Precision
-        A = self.x10p(localprec*2+10).isqrt()
+        A = isqrtnaive(self.x10p(localprec*2+10))
         A.Exponent -= (localprec+5)
         return A
 
-    def isqrt(self):
+    def sqrt (self):
+        def sqrtsmall (x, PREC):
+            #https://cs.stackexchange.com/questions/37596/arbitrary-precision-integer-square-root-algorithm
+            #print ("start: PREC = ", PREC)
+            #print ("start: x.Exponent = ", x.Exponent)
+            xi = mpap(1) / x
+            #initial estimate of sqrt
+            r = xi >> 1 
+            #print ("start: x = ", xi)
+            #print ("start: r = ", r)
+            eps = r
+            #print ("start: eps = ", eps)
+            i = 0
+            while (abs(eps) > mpap(1, -PREC)):
+                eps = r * ((mpap(1) - r*r*x) >> 1)
+                rn = r + eps
+                if i > 300:
+                    #print ("loop final: eps = ", eps)
+                    #print ("Timeout.")
+                    break
+                r = rn
+                i += 1
+            #print ("end: r*x = ", r*x)
+            return r*x
+    
         if self.Mantissa == 1 and (self.Exponent % 2) == 0:
             #even power of ten, make use of our base-10 advantage
             return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True)
 
-        #Naive implementation O(n*n)
-        #https://cs.stackexchange.com/questions/37596/arbitrary-precision-integer-square-root-algorithm
-        x = int(self)
-        r = 0
-        i = x.bit_length()
-        while i >= 0:
-            inc = (r << (i+1)) + (1 << (i*2))
-            if inc <= x:
-                x -= inc
-                r += 1 << i
-            i -= 1
-        return mpap(r)
-
-    def exp (self):
-        if abs(self) < 2000:
-            return self.expsmall()
-        else:
-            # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
-            m = (self/(mpap(2).log())).floor()
-            return (self - m * mpap(2).log()).expsmall() * mpap(2)**m
+        OLDPREC = PRECISION
+        PREC = max(self.Exponent, self.Precision)
+        sprec(PREC)
+        adjustedExponent = self.Exponent // 2
+        self.Exponent = self.Exponent % 2
+    
+        r = sqrtsmall(self, PREC)
+        r.Exponent += adjustedExponent
+        sprec(OLDPREC)
+        return r
 
     def digits(self):
         return len(str(int(self)))
 
-    def expsmall(self):
-        print ("expsmall: self.Precision=", self.Precision)
-        # Compute exp(x) as a fixed-point number. Works for any x,
-        # but for speed should have |x| < 1. For an arbitrary number,
-        # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
+    def exp (self):
+        def expsmall(self):
+            #print ("expsmall: self.Precision=", self.Precision)
+            # Compute exp(x) as a fixed-point number. Works for any x,
+            # but for speed should have |x| < 1. For an arbitrary number,
+            # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
+    
+            # e(x)  = 1 + x**1/1! + x**2/2! + x**3/3! + x**4/4! + ...
+            #       = 1 + x**2/2! + x**4/4! + ... even terms
+            #           + x**3/3! + x**5/5! + ... odd terms
+            #       = 1 + x**2/2! + x**4/4! + ... even terms
+            #           + x* (x**2/3! + x**4/5! + ... ) odd terms
+            x = self
+            s0 = s1 = mpap(1)
+            k = 2
+            a = x*x
+            while a > mpap(1, -self.Precision):
+                a /= k; s0 += a; k += 1
+                a /= k; s1 += a; k += 1
+                a *= x*x
+                   
+            s1 = s1*x
+            s = s0 + s1
+            return s
 
-        # e(x)  = 1 + x**1/1! + x**2/2! + x**3/3! + x**4/4! + ...
-        #       = 1 + x**2/2! + x**4/4! + ... even terms
-        #           + x**3/3! + x**5/5! + ... odd terms
-        #       = 1 + x**2/2! + x**4/4! + ... even terms
-        #           + x* (x**2/3! + x**4/5! + ... ) odd terms
-        x = self
-        s0 = s1 = mpap(1)
-        k = 2
-        a = x*x
-        while a > mpap(1, -self.Precision):
-            a /= k; s0 += a; k += 1
-            a /= k; s1 += a; k += 1
-            a *= x*x
-               
-        s1 = s1*x
-        s = s0 + s1
-        return s
+        if abs(self) < 2000:
+            return expsmall(self)
+        else:
+            # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
+            m = (self/(mpap(2).log())).floor()
+            return expsmall((self - m * mpap(2).log())) * mpap(2)**m
+
 
     def tan (self):
         global MPAPERRORFLAG
