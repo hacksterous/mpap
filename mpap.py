@@ -38,8 +38,6 @@ def sprec(prec):
     PRECISION = prec
 
 class mpap ():
-    PIx2 = '6.283185307179586476925286766559005768394338798750211641949889184615632812572417997256069650684234135988'
-
     # Internal Representation of significant digits + sign.
     Mantissa = None
 
@@ -286,7 +284,7 @@ class mpap ():
 
     # return number in the form of
     # Mantissa = ###.#######, Exponent = ###*3
-    # returns new mantissa as a string with adecimal point
+    # returns new mantissa as a string with a decimal point
     # and the exponent as an integer
     def sci(self):
         #print ("self is ", repr(self))
@@ -345,6 +343,23 @@ class mpap ():
         #for negative numbers, round downwards, not towards 0
         res = (self / other).floor()
         return res
+
+    def fpart (self, x):
+        y = x - (x).floor()
+        if y < 0:
+            y += 1
+        return y
+
+    def nround (self, n):
+        #round up for +
+        #round down for -
+        #n is a power of 10
+        if self == 0:
+            return 0
+        if self > 0:
+            return (self*n + 0.5).floor()/n
+        else:
+            return (self*n - 0.5).floor()/n
 
     def __mod__ (self, other):
         if(not isinstance(other, mpap)):
@@ -714,12 +729,10 @@ class mpap ():
             m = (self/(mpap(2).log())).floor()
             return expsmall((self - m * mpap(2).log())) * mpap(2)**m
 
-
     def tan (self):
         global MPAPERRORFLAG
         global MPAP_DEGREES_MODE
         if MPAP_DEGREES_MODE == True:
-            #d2r = mpap('3.1415926535897932384626433832795') / 180
             d2r = mpap(1).pi() / 180
             c = (self * d2r).cos()
         else:
@@ -729,6 +742,25 @@ class mpap ():
                 return (self * d2r).sin()/c
             else:
                 return self.sin()/c
+        else:
+            MPAPERRORFLAG = "Tangent is undefined."
+            return mpap(0)
+
+    def atan2 (self, other):
+        global MPAPERRORFLAG
+        global MPAP_DEGREES_MODE
+        val = self/other
+        if MPAP_DEGREES_MODE == True:
+            d2r = mpap(1).pi() / 180
+            c = (val * d2r).cos()
+        else:
+            c = val.cos()
+
+        if c != 0:
+            if MPAP_DEGREES_MODE == True:
+                return (val * d2r).sin()/c
+            else:
+                return val.sin()/c
         else:
             MPAPERRORFLAG = "Tangent is undefined."
             return mpap(0)
@@ -744,7 +776,6 @@ class mpap ():
         else:
             x = self
 
-        #x = x % self.PIx2
         x = x % mpap(2).pi()
         x2 = -x*x
         t = mpap(1)
@@ -761,12 +792,10 @@ class mpap ():
     def cos (self):
         global MPAP_DEGREES_MODE
         if MPAP_DEGREES_MODE == True:
-            #x = self * mpap('3.1415926535897932384626433832795') / 180
             x = self * mpap(1).pi() / mpap(180)
         else:
             x = self
 
-        #x = x % self.PIx2
         x = x % mpap(2).pi()
         x2 = -x*x
         t = mpap(1)
