@@ -258,6 +258,10 @@ class mpap ():
     def __int__ (self):
         return self.int(preserveType = False)
 
+    def __float__ (self):
+        #only for CPython, does not work in MicroPython
+        return self.float()
+
     def float (self):
         s = str(self.Mantissa)
         return float(('-' if self.Sign == -1 else '') + s[0:1] + '.' + s[1:] + 'e' + str(self.Exponent))
