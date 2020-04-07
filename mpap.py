@@ -19,22 +19,21 @@ MPAP_DEGREES_MODE = False
 MPAPERRORFLAG = ''
 MAX_PRECISION_HARD_LIMIT = 1000
 PRECISION = 27 #31 bit PRECISION gives 23 accurate significant digits
-#BIGGESTNUM = 1
 #import utime
 
 def finish ():
     pass
 
+def degrees(val):
+    global MPAP_DEGREES_MODE
+    MPAP_DEGREES_MODE = bool(val)
+
 def rprec():
     global PRECISION
-    #global BIGGESTNUM
-    #BIGGESTNUM = 1
     PRECISION = 27
 
 def sprec(prec):
     global PRECISION
-    #global BIGGESTNUM
-    #BIGGESTNUM = 1
     PRECISION = prec
 
 class mpap ():
@@ -74,8 +73,11 @@ class mpap ():
         ImagMantissa = 0, ImagExponent = 0):
 
         global PRECISION
-        global BIGGESTNUM
         global MPAPERRORFLAG
+        global MPAP_DEGREES_MODE
+        #print ("mpap.__init__: MPAP_DEGREES_MODE=", MPAP_DEGREES_MODE)
+        #self.mpap_degrees_mode = MPAP_DEGREES_MODE
+        #print ("mpap.__init__: self.mpap_degrees_mode=", self.mpap_degrees_mode)
 
         self.Precision = PRECISION
         if(isinstance(Mantissa, mpap)):
@@ -771,6 +773,7 @@ class mpap ():
 
     def sin (self):
         global MPAP_DEGREES_MODE
+        #print ("mpap.sin: MPAP_DEGREES_MODE=", MPAP_DEGREES_MODE)
         if self == 0:
             return mpap(0)
         #t = utime.ticks_ms()
@@ -815,8 +818,8 @@ class mpap ():
         return self.asin(acosine=True)
 
     def asin (self, acosine=False):
-        global MPAPERRORFLAG
         global MPAP_DEGREES_MODE
+        global MPAPERRORFLAG
         if abs(self) > 1:
             return mpap(0)
             MPAPERRORFLAG = "Domain error."
