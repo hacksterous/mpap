@@ -97,6 +97,7 @@ class mpap ():
             self.Mantissa = 0
             self.Exponent = 0
             MPAPERRORFLAG = "Illegal mantissa or exponent. \nHint: use strings to hold large numbers!"
+            raise ValueError
             return
 
         if (type(Mantissa) == float or type(Mantissa) == str):
@@ -115,9 +116,17 @@ class mpap ():
                     self.Mantissa = 0
                     self.Exponent = 0
                     MPAPERRORFLAG = "Illegal mantissa or exponent."
+                    raise ValueError
                     return
             else:
-                self.Mantissa = int(strMan.replace('.', ''))
+                try:
+                    self.Mantissa = int(strMan.replace('.', ''))
+                except (ValueError, OverflowError):
+                    self.Mantissa = 0
+                    self.Exponent = 0
+                    MPAPERRORFLAG = "Illegal mantissa or exponent."
+                    raise ValueError
+                    return
 
             # Count exponent for scientific notation
             isFraction = (strManUS.find('.') > -1 and int(strManUS[:strManUS.find('.')]) == 0)
@@ -701,7 +710,7 @@ class mpap ():
         return r
 
     def digits(self):
-        return len(str(int(self)))
+        return mpap(len(str(int(self))))
 
     def exp (self):
         def expsmall(self):
