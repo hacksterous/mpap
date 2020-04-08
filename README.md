@@ -8,7 +8,7 @@ Mantissa, sign and exponent for imaginary component is not currently used.
 The Mantissa is always stored as the smallest possible integer, i.e., zeroes to the right are trimmed. 
 The number 1000 is stored as: 
 ```
->>> from mpapbf import mpap
+>>> from mpap import mpap
 >>> mpap(1000)
 mpap(Mantissa = 1, Exponent = 3, InternalAware = True)
 ```
