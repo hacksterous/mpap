@@ -743,6 +743,15 @@ class mpap ():
             m = (self/(mpap(2).log())).floor()
             return expsmall((self - m * mpap(2).log())) * mpap(2)**m
 
+    def cosh (self):
+        return (self.exp() + (-self).exp())/2
+
+    def sinh (self):
+        return (self.exp() - (-self).exp())/2
+
+    def tanh (self):
+        return self.sinh()/self.cosh()
+
     def tan (self):
         global MPAPERRORFLAG
         global MPAP_DEGREES_MODE
