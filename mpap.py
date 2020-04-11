@@ -388,6 +388,20 @@ class mpap ():
     def __eq__(self, other):
         if(not isinstance(other, mpap)):
             return self == mpap(other)
+
+        internal = self - other
+
+        if internal.Exponent < -self.Precision:
+            #equal
+            return True
+        elif internal.Mantissa == 0:
+            return True
+        else:
+            return False
+
+    def __eq__DONTUSE(self, other):
+        if(not isinstance(other, mpap)):
+            return self == mpap(other)
         return self.Mantissa == other.Mantissa and self.Exponent == other.Exponent
 
     def __hash__(self):
@@ -397,6 +411,20 @@ class mpap ():
         return not self == other
 
     def __lt__(self, other):
+        if(not isinstance(other, mpap)):
+            return self < mpap(other)
+
+        internal = self - other
+
+        if internal.Exponent < -self.Precision:
+            #equal
+            return False
+        elif internal.Mantissa < 0:
+            return True
+        else:
+            return False
+
+    def __lt__DONTUSE(self, other):
         if(not isinstance(other, mpap)):
             return self < mpap(other)
 
