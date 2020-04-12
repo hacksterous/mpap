@@ -85,6 +85,11 @@ class mpap ():
             self.Exponent = Mantissa.Exponent
             return
 
+        if Mantissa == 'inf' or Mantissa == '-inf' or Mantissa == 'nan' or Mantissa == 'err':
+            self.Mantissa = Mantissa
+            self.Exponent = Exponent
+            return
+
         try:
             #catch inf in Mantissa and illegal format in Exponent
             if type(Mantissa) == float:
