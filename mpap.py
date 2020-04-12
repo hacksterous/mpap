@@ -201,7 +201,8 @@ class mpap ():
             MPAPERRORFLAG = "Division by zero."
             return mpap(0)
 
-        self.Sign = self.Sign * other.Sign
+        #self.Sign = self.Sign * other.Sign
+        divSign = self.Sign * other.Sign
 
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
         bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
@@ -218,7 +219,7 @@ class mpap ():
         opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
         # Don't see any speed difference compared to when long division
         # is done using integers
-        while (len(opResult) < self.Precision and opSelf != 0):
+        while (len(opResult) < (self.Precision+1) and opSelf != 0):
             opSelf = opSelf * 10
             bEPrecision += 1
             opResult = opResult + str(opSelf // mOther)
@@ -228,7 +229,8 @@ class mpap ():
         if(len(opResult) == 0):
             return mpap(0)
 
-        bDiv = int(opResult) * self.Sign
+        #bDiv = int(opResult) * self.Sign
+        bDiv = int(opResult) * divSign
         rteDiv = len(opResult) - 1
 
         eDiv = self.Exponent - other.Exponent + rteDiv - bESelf + bEOther - bEPrecision
@@ -526,7 +528,7 @@ class mpap ():
         if(not isinstance(other, mpap)):
             return self * mpap(other)
 
-        self.Sign = self.Sign * other.Sign
+        #self.Sign = self.Sign * other.Sign
 
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
         bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
@@ -557,7 +559,7 @@ class mpap ():
         
         # cut Mantissa to target precision
         if ((len(mProductStr) - eProduct - 1) > 0):
-            mProduct = int(mProductStr[0:self.Precision])
+            mProduct = int(mProductStr[0:(self.Precision+1)])
         else:
             mProduct = int(mProductStr)
         return mpap(Mantissa = mProduct, Exponent = eProduct, InternalAware = True)
