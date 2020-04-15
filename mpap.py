@@ -36,6 +36,10 @@ def sprec(prec):
     global PRECISION
     PRECISION = prec
 
+def gprec():
+    global PRECISION
+    return PRECISION
+
 class mpap ():
     # Internal Representation of significant digits + sign.
     Mantissa = None
@@ -69,27 +73,8 @@ class mpap ():
 
     # Set InternalAware = True to interpret as internal representation.
 
-    def __init__(self, Mantissa, Exponent = 0, InternalAware = False, \
-        ImagMantissa = 0, ImagExponent = 0):
-
-        global PRECISION
+    def processArguments (self, Mantissa, Exponent, InternalAware = False):
         global MPAPERRORFLAG
-        global MPAP_DEGREES_MODE
-        #print ("mpap.__init__: MPAP_DEGREES_MODE=", MPAP_DEGREES_MODE)
-        #self.mpap_degrees_mode = MPAP_DEGREES_MODE
-        #print ("mpap.__init__: self.mpap_degrees_mode=", self.mpap_degrees_mode)
-
-        self.Precision = PRECISION
-        if(isinstance(Mantissa, mpap)):
-            self.Mantissa = Mantissa.Mantissa
-            self.Exponent = Mantissa.Exponent
-            return
-
-        if Mantissa == 'inf' or Mantissa == '-inf' or Mantissa == 'nan' or Mantissa == 'err':
-            self.Mantissa = Mantissa
-            self.Exponent = Exponent
-            return
-
         try:
             #catch inf in Mantissa and illegal format in Exponent
             if type(Mantissa) == float:
@@ -99,8 +84,8 @@ class mpap ():
                     raise OverflowError
             Exponent = int(Exponent)
         except (ValueError, OverflowError):
-            self.Mantissa = 0
-            self.Exponent = 0
+            selfMantissa = 0
+            selfExponent = 0
             MPAPERRORFLAG = "Illegal mantissa or exponent. \nHint: use strings to hold large numbers!"
             raise ValueError
 
@@ -114,19 +99,19 @@ class mpap ():
                 # extract the second part and add it to exponent accumulator
                 strManParts = strMan.split('e')
                 try:
-                    self.Mantissa = int(strManParts[0].replace('.', ''))
+                    selfMantissa = int(strManParts[0].replace('.', ''))
                     Exponent += int(strManParts[1])
                 except (ValueError, OverflowError):
-                    self.Mantissa = 0
-                    self.Exponent = 0
+                    selfMantissa = 0
+                    selfExponent = 0
                     MPAPERRORFLAG = "Illegal mantissa or exponent."
                     raise ValueError
             else:
                 try:
-                    self.Mantissa = int(strMan.replace('.', ''))
+                    selfMantissa = int(strMan.replace('.', ''))
                 except (ValueError, OverflowError):
-                    self.Mantissa = 0
-                    self.Exponent = 0
+                    selfMantissa = 0
+                    selfExponent = 0
                     MPAPERRORFLAG = "Illegal mantissa or exponent."
                     raise ValueError
 
@@ -136,10 +121,10 @@ class mpap ():
             if isFraction == True:
                 # numbers that cause single/double-precision float() to overflow
                 # will fail this if-clause
-                if self.Mantissa == 0:
+                if selfMantissa == 0:
                     #number is 0, .0, 0.0, 0. etc
-                    self.Mantissa = 0
-                    self.Exponent = 0
+                    selfMantissa = 0
+                    selfExponent = 0
                     Exponent = 0
                 else:
                     #number is a fraction
@@ -156,40 +141,61 @@ class mpap ():
                         break
                     Exponent = Exponent + 1
 
-            self.Exponent = Exponent
+            selfExponent = Exponent
 
         else:
             #handle integer parameters only
             if(Mantissa == 0):
-                self.Mantissa = 0
-                self.Exponent = 0
+                selfMantissa = 0
+                selfExponent = 0
             else:
-                self.Mantissa = Mantissa
-                if(InternalAware):
-                    self.Exponent = Exponent
+                selfMantissa = Mantissa
+                if InternalAware == True:
+                    selfExponent = Exponent
                 else:
-                    self.Exponent = Exponent + len(str(Mantissa).replace('-', '')) - 1
+                    selfExponent = Exponent + len(str(Mantissa).replace('-', '')) - 1
             
         #endif
 
         #M=10, E=1 and M=1, E=1 both indicate the same number,
         #however, the different values of mantissa will be a problem
         #in numeric comparisons, so reduce to the form M=1, E=1
-        MantissaStr = str(self.Mantissa)
+        MantissaStr = str(selfMantissa)
         i = 0
         while MantissaStr[-1:] == '0' and \
-                self.Mantissa != 0:
+                selfMantissa != 0:
             MantissaStr = MantissaStr[:-1]
             i += 1
-        self.Mantissa = int (MantissaStr)
+        selfMantissa = int (MantissaStr)
 
-        #For numbers with large exponents, grow the precision
+        return selfMantissa, selfExponent
+
+    def __init__(self, Mantissa, Exponent = 0, InternalAware = False, \
+        ImagMantissa = 0, ImagExponent = 0):
+
+        global PRECISION
+        #print ("mpap.__init__: MPAP_DEGREES_MODE=", MPAP_DEGREES_MODE)
+        #self.mpap_degrees_mode = MPAP_DEGREES_MODE
+        #print ("mpap.__init__: self.mpap_degrees_mode=", self.mpap_degrees_mode)
+
+        self.Precision = PRECISION
+        if(isinstance(Mantissa, mpap)):
+            self.Mantissa = Mantissa.Mantissa
+            self.Exponent = Mantissa.Exponent
+            return
+
+        if Mantissa == 'inf' or Mantissa == '-inf' or Mantissa == 'nan' or Mantissa == 'err':
+            self.Mantissa = Mantissa
+            self.Exponent = Exponent
+            return
+
+        self.Mantissa, self.Exponent = self.processArguments (Mantissa, Exponent, InternalAware)
+
         #print ("self is ", str(self))
         #print ("self.Exponent is ", self.Exponent)
-        #FIXME
         #self.Precision = max(self.Precision, (len(str(self.Mantissa).replace('-', '')) + self.Exponent))
         #print ("self.Precision is 1 set to ", self.Precision)
-        self.Precision = min(self.Precision, MAX_PRECISION_HARD_LIMIT)
+        #self.Precision = min(self.Precision, MAX_PRECISION_HARD_LIMIT)
         #print ("self.Precision is 3 set to ", self.Precision)
 
         #zero value has sign 0
@@ -206,7 +212,10 @@ class mpap ():
             MPAPERRORFLAG = "Division by zero."
             return mpap(0)
 
-        #self.Sign = self.Sign * other.Sign
+        PREC = max(self.Precision, other.Precision)
+        PREC = max(self.Exponent, PREC)
+        print ("truediv: start: PREC = ", PREC)
+
         divSign = self.Sign * other.Sign
 
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
@@ -224,7 +233,8 @@ class mpap ():
         opResult = (str(mSelf // mOther)) if mSelf // mOther != 0 else ''
         # Don't see any speed difference compared to when long division
         # is done using integers
-        while (len(opResult) < (self.Precision+1) and opSelf != 0):
+
+        while (len(opResult) < (PREC+1) and opSelf != 0):
             opSelf = opSelf * 10
             bEPrecision += 1
             opResult = opResult + str(opSelf // mOther)
@@ -234,7 +244,6 @@ class mpap ():
         if(len(opResult) == 0):
             return mpap(0)
 
-        #bDiv = int(opResult) * self.Sign
         bDiv = int(opResult) * divSign
         rteDiv = len(opResult) - 1
 
@@ -253,7 +262,14 @@ class mpap ():
 
     def int(self, preserveType = True):
         # 123456 (123456, 5)
-        s = str(self.Mantissa).replace('-', '')
+
+        s = str(self.Mantissa)
+        if s[0] == '-':
+            mNeg = '-'
+            s = s[1:]
+        else:
+            mNeg = ''
+
         if self.Exponent < 0:
             s = '0'
         else:
@@ -266,9 +282,9 @@ class mpap ():
 
         if preserveType == True:
             #convert to an integer, but return the mpap() version
-            return mpap(s) * self.Sign
+            return mpap(mNeg+s)
         else:
-            return int(s) * self.Sign
+            return int(mNeg+s)
 
     def __int__ (self):
         return self.int(preserveType = False)
@@ -470,12 +486,15 @@ class mpap ():
         return self == other or self > other
 
     def __add__(self, other):
+        if (not isinstance(other, mpap)):
+            return self + mpap(other)
+
         # To perform arithmetic add, we have to align the bits so that they are
         # aligned to the SMALLEST significant position, e.g.
         # 142.857 (142857, 2) + 3.45678 (345678, 0)
         # MinExpPos: 2-6+1=-3, 0-6+1=-5
-        if(not isinstance(other, mpap)):
-            return self + mpap(other)
+        PREC = max(self.Precision, other.Precision)
+        PREC = max(self.Exponent, PREC)
 
         # Calculate Minimum Exponents for Alignment
         minESelf  = 1 + self.Exponent - len(str(self.Mantissa).replace('-', ''))
@@ -513,10 +532,18 @@ class mpap ():
             i += 1
         
         # cut Mantissa to target precision
-        if ((len(mSumStr) - eSum - 1) > 0):
-            mSum = int(mSumStr[0:self.Precision])
+        if mSumStr[0] == '-':
+            mNeg = '-'
+            mSumStr = mSumStr[1:]
         else:
-            mSum = int(mSumStr)
+            mNeg = ''
+
+        mDigitCount = len(mSumStr) - eSum - 1
+
+        if mDigitCount > 0:
+            mSum = int(mNeg+mSumStr[0:PREC+1]) #PREC digits are decimal point (normal internal repr. is #.####)
+        else:
+            mSum = int(mNeg+mSumStr)
         
         result = mpap(Mantissa = mSum, Exponent = eSum, InternalAware = True)
 
@@ -533,7 +560,8 @@ class mpap ():
         if(not isinstance(other, mpap)):
             return self * mpap(other)
 
-        #self.Sign = self.Sign * other.Sign
+        PREC = max(self.Precision, other.Precision)
+        PREC = max(self.Exponent, PREC)
 
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
         bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
@@ -563,10 +591,19 @@ class mpap ():
             i += 1
         
         # cut Mantissa to target precision
-        if ((len(mProductStr) - eProduct - 1) > 0):
-            mProduct = int(mProductStr[0:(self.Precision+1)])
+        if mProductStr[0] == '-':
+            mNeg = '-'
+            mProductStr = mProductStr[1:]
         else:
-            mProduct = int(mProductStr)
+            mNeg = ''
+
+        mDigitCount = len(mProductStr) - eProduct - 1
+
+        if mDigitCount > 0:
+            mProduct = int(mNeg+mProductStr[0:PREC+1])
+        else:
+            mProduct = int(mNeg+mProductStr)
+
         return mpap(Mantissa = mProduct, Exponent = eProduct, InternalAware = True)
 
     def __lshift__ (self, other):
@@ -609,7 +646,7 @@ class mpap ():
             return mpap (0)
 
         if(not other.isInt()):
-            return self.generic_pow (other)
+            return self.pow (other)
         else:
             rResult = self
             if(other == 0):
@@ -627,7 +664,7 @@ class mpap ():
     def sgn(self):
         return self.Sign
 
-    def generic_pow (self, other):
+    def pow (self, other):
         return (other*self.log()).exp()
 
     def log (self):
@@ -680,6 +717,7 @@ class mpap ():
         return mpap(self.Mantissa, self.Exponent+int(x), InternalAware=True)
 
     def sqrtnaive (self):
+
         def isqrtnaive(self):
             #Naive implementation O(n*n)
             #https://cs.stackexchange.com/questions/37596/arbitrary-precision-integer-square-root-algorithm
@@ -732,7 +770,7 @@ class mpap ():
             #even power of ten, make use of our base-10 advantage
             return mpap (1, Exponent = (self.Exponent // 2), InternalAware = True)
 
-        OLDPREC = PRECISION
+        OLDPREC = self.Precision
         PREC = max(self.Exponent, self.Precision)
         sprec(PREC)
         adjustedExponent = self.Exponent // 2
@@ -740,6 +778,7 @@ class mpap ():
     
         r = sqrtsmall(self, PREC)
         r.Exponent += adjustedExponent
+        #PREC = max(r.Exponent, OLDPREC)
         sprec(OLDPREC)
         return r
 
