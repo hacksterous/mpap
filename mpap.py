@@ -275,6 +275,7 @@ class mpap ():
         else:
             lenS =len(s)
             #fill up with requisite number of 0s on the right
+            #if more than 1e8, can run out of memory
             s = s + '0'*(self.Exponent + 1 - lenS)
             #take as many required by the Exponent (add 1 more
             #since canonical form is always #.##....e###
@@ -392,9 +393,9 @@ class mpap ():
         if self == 0:
             return 0
         if self > 0:
-            return (self*n + 0.5).floor()/n
+            return (self*n + 0.5).int()/n
         else:
-            return (self*n - 0.5).floor()/n
+            return (self*n - 0.5).int()/n
 
     def __mod__ (self, other):
         if(not isinstance(other, mpap)):
