@@ -362,10 +362,14 @@ class mpap ():
             expo = (expo// 3) * 3
             man = ('-' if (self.Sign == -1) else '') + strMantissa[:multfac] + '.' + strMantissa[multfac:]
         # handle the case when mantissa string is like '123.' -- add a zero at end
-        if man[-1:] == '.':
-            man += '0'
+
+        if man.find ('.') != -1:
+            man = man.rstrip('0')
+            if man[-1:] == '.':
+                man += '0'
         elif man.find('.') == -1:
             man += '.0'
+
         return man, expo
 
     # similar to sci(), but returns a single string as ###.#######e###
