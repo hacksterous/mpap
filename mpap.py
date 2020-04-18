@@ -302,6 +302,9 @@ class mpap ():
         return "mpap(Mantissa = " + str(self.Mantissa) + ", Exponent = " + str(self.Exponent) + ", InternalAware = True)"
 
     def __str__(self):
+        return self.flexstr(sci=True)
+
+    def flexstr(self, sci=True):
         if self.isInt():
             return str(int(self))
         elif len(str(self.Mantissa)) - 1 > self.Exponent and self.Exponent >= 0:
@@ -311,12 +314,16 @@ class mpap ():
             return ('-' if self.Mantissa < 0 else '') + strAbsSelfMantissa[:decPoint] + '.' + strAbsSelfMantissa[decPoint:]
         else:
             strAbsSelfMantissa = str(abs(self.Mantissa))
-            frac = strAbsSelfMantissa[1:]
-            # mpap(1, -3) is 1.0e-3 and not 1.e-3
-            if frac == '':
-                frac = '0'
-            strAbsSelfMantissa = strAbsSelfMantissa[0] + '.' + frac
-            return ('-' if self.Mantissa < 0 else '') + strAbsSelfMantissa + "e" + str(self.Exponent)
+            if sci == True:
+                frac = strAbsSelfMantissa[1:]
+                # mpap(1, -3) is 1.0e-3 and not 1.e-3
+                if frac == '':
+                    frac = '0'
+                strAbsSelfMantissa = strAbsSelfMantissa[0] + '.' + frac
+                return ('-' if self.Mantissa < 0 else '') + strAbsSelfMantissa + "e" + str(self.Exponent)
+            else:
+                strAbsSelfMantissa = '0.' + '0'*(abs(self.Exponent) - 1) + strAbsSelfMantissa
+                return ('-' if self.Mantissa < 0 else '') + strAbsSelfMantissa
 
     # return number in the form of
     # Mantissa = ###.#######, Exponent = ###*3
