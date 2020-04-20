@@ -402,7 +402,7 @@ class mpap ():
         #round down for -
         #n is a power of 10
         if self == 0:
-            return 0
+            return mpap(0)
         if self > 0:
             return (self*n + 0.5).int()/n
         else:
