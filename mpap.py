@@ -682,7 +682,7 @@ class mpap ():
     def log (self):
         if self.Exponent > 0:
             t = self.Exponent
-            x = mpap(self.Mantissa, Exponent = 0)
+            x = mpap(self.Mantissa, Exponent = 0, InternalAware=True)
             return x.logt() + mpap(10).logt() * t
         else:
             return self.logt()
