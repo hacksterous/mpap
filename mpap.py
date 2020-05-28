@@ -199,7 +199,6 @@ class mpap ():
         #print ("self.Precision is 3 set to ", self.Precision)
 
         #zero value has sign 0
-        self.Sign = (1 if self.Mantissa > 0 else (0 if self.Mantissa == 0 and self.Exponent == 0 else -1))
         return
     #enddef init
 
@@ -216,7 +215,7 @@ class mpap ():
         PREC = max(self.Exponent, PREC)
         print ("truediv: start: PREC = ", PREC)
 
-        divSign = self.Sign * other.Sign
+        divSign = self.sgn() * other.sgn()
 
         # Calculate "Borrowed" Exponents for Alignment -- always len() - 1 after removing the sign digit
         bESelf  = len(str(self.Mantissa).replace('-', '')) - 1
@@ -296,7 +295,7 @@ class mpap ():
 
     def float (self):
         s = str(self.Mantissa)
-        return float(('-' if self.Sign == -1 else '') + s[0:1] + '.' + s[1:] + 'e' + str(self.Exponent))
+        return float(('-' if self.sgn() == -1 else '') + s[0:1] + '.' + s[1:] + 'e' + str(self.Exponent))
 
     def __repr__(self):
         return "mpap(Mantissa = " + str(self.Mantissa) + ", Exponent = " + str(self.Exponent) + ", InternalAware = True)"
@@ -349,7 +348,7 @@ class mpap ():
                     strMantissa +=  '0'*(multfac+1-lenStrMantissa)
             else:
                 multfac = 0
-            man = ('-' if (self.Sign == -1) else '') + strMantissa[:multfac+1] + '.' + strMantissa[multfac+1:]
+            man = ('-' if (self.sgn() == -1) else '') + strMantissa[:multfac+1] + '.' + strMantissa[multfac+1:]
 
         else:
             diff = self.Exponent - lenStrMantissa + 1 
@@ -360,7 +359,7 @@ class mpap ():
             multfac = self.Exponent % 3 + 1
             #print ("2. multfac is ", multfac)
             expo = (expo// 3) * 3
-            man = ('-' if (self.Sign == -1) else '') + strMantissa[:multfac] + '.' + strMantissa[multfac:]
+            man = ('-' if (self.sgn() == -1) else '') + strMantissa[:multfac] + '.' + strMantissa[multfac:]
         # handle the case when mantissa string is like '123.' -- add a zero at end
 
         if man.find ('.') != -1:
@@ -379,7 +378,7 @@ class mpap ():
 
     def floor(self):
         i = self.int(preserveType = True)
-        return i if self.Sign >= 0 else i-1
+        return i if self.sgn() >= 0 else i-1
 
     def __neg__(self):
         return mpap(Mantissa = (-1) * self.Mantissa, Exponent = self.Exponent, InternalAware = True)
@@ -415,7 +414,7 @@ class mpap ():
         return other
 
     def __abs__(self):
-        if(self.Sign == 1):
+        if(self.sgn() == 1):
             return self
         else:
             return -self
@@ -463,16 +462,16 @@ class mpap ():
         if(not isinstance(other, mpap)):
             return self < mpap(other)
 
-        if((self.Sign == -1 or self.Sign == 0) and other.Sign == 1):
+        if((self.sgn() == -1 or self.sgn() == 0) and other.sgn() == 1):
             #Man = 0 and Exp = 0 means Sign is 0
             return True
-        if(self.Sign == -1 and other.Sign == -1):
+        if(self.sgn() == -1 and other.sgn() == -1):
             return -other < -self
 
         # Now they are all positive & same
-        if self.Exponent < other.Exponent and other.Sign != 0:
+        if self.Exponent < other.Exponent and other.sgn() != 0:
             return True
-        if self.Exponent > other.Exponent and self.Sign != 0:
+        if self.Exponent > other.Exponent and self.sgn() != 0:
             return False
 
         # Now they're the same exponent
@@ -653,7 +652,7 @@ class mpap ():
         global MPAPERRORFLAG
         if(not isinstance(other, mpap)):
             return self ** mpap(other)
-        if (self.Sign == -1 and other.Exponent < 0):
+        if (self.sgn() == -1 and other.Exponent < 0):
             MPAPERRORFLAG = "Complex result is not implemented."
             return mpap (0)
 
@@ -674,7 +673,14 @@ class mpap ():
                 return rResult
 
     def sgn(self):
-        return self.Sign
+        #should we round here?
+        #if abs(x) < mpap(1, -prec) return 0?
+        if self.Mantissa < 0:
+            return -1
+        elif self.Mantissa > 0:
+            return 1
+        else:
+            return 0
 
     def pow (self, other):
         return (other*self.log()).exp()
