@@ -407,9 +407,61 @@ class mpap ():
         else:
             return (self*n - 0.5).int()/n
 
+    def modexp (self, other, mod):
+        #modular exp
+        if not isinstance(other, mpap) or not isinstance(mod, mpap):
+            return self.modexp(mpap(other), mpap(mod))
+        if mod == 1:
+            return mpap(0)
+        base = int(self)
+        exponent = int(other)
+        modulus = int(mod)
+        result = 1
+        base = base % modulus
+        while exponent > 0:
+            if (exponent & 0b1 == 1):
+                result = (result * base) % modulus
+            exponent = exponent >> 1
+            base = (base * base) % modulus
+		return mpap(result)
+
+    def modinv(self, other):
+        x, y = self.extgcd(other)
+        if x < 0:
+            x += other
+        return x
+
+    def extgcd (self, other):
+        s = 0
+        olds = 1
+        t = 1
+        oldt = 0
+        r = int (other)
+        oldr = int(self)
+
+        while r != 0:
+            q = oldr // r
+
+            newr = oldr - q*r
+            oldr = r
+            r = newr
+
+            news = olds - q*s
+            olds = s
+            s = news
+
+            newt = oldt - q*t
+            oldt = t
+            t = newt
+
+        return mpap(olds), mpap(oldt)
+
     def __mod__ (self, other):
         if(not isinstance(other, mpap)):
             return self % mpap(other)
+        if self.isInt() and other.isInt():
+            #both are integers
+            return mpap(int(self) % int(other))
         other = (self / other - self // other) * other
         return other
 
