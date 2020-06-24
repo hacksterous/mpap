@@ -423,7 +423,32 @@ class mpap ():
                 result = (result * base) % modulus
             exponent = exponent >> 1
             base = (base * base) % modulus
-		return mpap(result)
+        return mpap(result)
+
+    def modinv2 (self, other):
+        s = 0
+        olds = 1
+        r = int (other)
+        oldr = int(self)
+
+        while r != 0:
+            q = oldr // r
+
+            newr = oldr - q*r
+            oldr = r
+            r = newr
+
+            news = olds - q*s
+            olds = s
+            s = news
+
+        if oldr > 1:
+            #not invertible
+            return mpap(0)
+        else:
+            if olds < 0:
+                olds += other
+            return mpap(olds)
 
     def modinv(self, other):
         x, y = self.extgcd(other)
