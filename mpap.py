@@ -490,6 +490,9 @@ class mpap ():
         other = (self / other - self // other) * other
         return other
 
+    def abs (self):
+        return self.__abs__()
+
     def __abs__(self):
         if(self.sgn() == 1):
             return self
@@ -733,7 +736,7 @@ class mpap ():
             MPAPERRORFLAG = "Complex result is not implemented."
             return mpap (0)
 
-        if(not other.isInt()):
+        if(not self.isInt() or not other.isInt()):
             return self.pow (other)
         else:
             rResult = self
@@ -910,7 +913,10 @@ class mpap ():
         else:
             # use exp(x) = exp(x-m*log(2)) * 2^m where m = floor(x/log(2)).
             m = (self/(mpap(2).log())).floor()
-            return expsmall((self - m * mpap(2).log())) * mpap(2)**m
+            if abs(m) > 1000000:
+                raise ValueError
+            #return expsmall((self - m * mpap(2).log())) * mpap(2)**m
+            return expsmall((self - m * mpap(2).log())) * (mpap(1 << int(m)))
 
     def cosh (self):
         return (self.exp() + (-self).exp())/2
