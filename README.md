@@ -26,7 +26,7 @@ Floats are rounded to the precision supported by the Python implementation (CPyt
 mpap(Mantissa = 1000342353465655, Exponent = 3, InternalAware = True)
 ```
 
-MPAP can convert floats to numbers:
+MPAP can convert floats to the internal mpap representation:
 
 ```
 >>> mpap(1.2)/mpap(1001e234560)
